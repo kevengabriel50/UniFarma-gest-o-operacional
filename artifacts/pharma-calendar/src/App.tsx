@@ -12,6 +12,7 @@ import TasksPage from "@/pages/TasksPage";
 import MedicamentosPage from "@/pages/MedicamentosPage";
 import HistoricoPage from "@/pages/HistoricoPage";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AppProvider } from "@/lib/app-context";
 
 const queryClient = new QueryClient();
 
@@ -37,14 +38,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          {!isAuthenticated ? (
-            <LoginPage onLogin={() => setIsAuthenticated(true)} />
-          ) : (
-            <Router />
-          )}
-        </WouterRouter>
-        <Toaster />
+        <AppProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            {!isAuthenticated ? (
+              <LoginPage onLogin={() => setIsAuthenticated(true)} />
+            ) : (
+              <Router />
+            )}
+          </WouterRouter>
+          <Toaster />
+        </AppProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
