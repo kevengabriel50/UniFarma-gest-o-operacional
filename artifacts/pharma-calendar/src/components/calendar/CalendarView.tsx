@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -13,6 +13,7 @@ import {
   CalendarEvent
 } from '@workspace/api-client-react';
 import { mapEventToFullCalendar } from '@/lib/calendar-utils';
+import { getHolidaysForYears, mapHolidayToFullCalendar, mapHolidayToLabelEvent } from '@/lib/holidays';
 import { EventModal } from './EventModal';
 import { EventDetailModal } from './EventDetailModal';
 import { useQueryClient } from '@tanstack/react-query';
@@ -34,6 +35,18 @@ export function CalendarView() {
 
   const mappedEvents = events?.map(mapEventToFullCalendar) || [];
 
+  const holidayEvents = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear, currentYear + 1];
+    const holidays = getHolidaysForYears(years);
+    return [
+      ...holidays.map(mapHolidayToFullCalendar),
+      ...holidays.map(mapHolidayToLabelEvent),
+    ];
+  }, []);
+
+  const allEvents = [...mappedEvents, ...holidayEvents];
+
   const handleDateClick = (arg: any) => {
     setEditingEventId(undefined);
     setCreateModalData({
@@ -44,6 +57,7 @@ export function CalendarView() {
   };
 
   const handleEventClick = (arg: any) => {
+    if (arg.event.extendedProps?.isHoliday) return;
     const eventId = parseInt(arg.event.id);
     const event = events?.find(e => e.id === eventId);
     if (event) {
@@ -128,9 +142,10 @@ export function CalendarView() {
               center: 'title',
               right: 'dayGridMonth,timeGridWeek,listMonth'
             }}
-            events={mappedEvents}
+            events={allEvents}
             editable={true}
             selectable={true}
+            eventAllow={(_, movingEvent) => !movingEvent?.extendedProps?.isHoliday}
             selectMirror={true}
             dayMaxEvents={true}
             weekends={true}

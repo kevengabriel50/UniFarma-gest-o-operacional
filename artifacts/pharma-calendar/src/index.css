@@ -336,3 +336,26 @@
     inset: -1px;
   }
 }
+
+/* Feriados nacionais */
+.fc-event.holiday-label {
+  cursor: default !important;
+  pointer-events: none;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  border-radius: 3px !important;
+  padding: 1px 4px !important;
+  opacity: 0.92;
+}
+
+.fc-daygrid-event.holiday-label {
+  margin-top: 1px;
+}
+
+.fc-bg-event.holiday-event {
+  opacity: 0.15 !important;
+}
+
+.fc-day.fc-day-today .fc-bg-event.holiday-event {
+  opacity: 0.12 !important;
+}
