@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type EventsSummaryByCategory = {
+  ferias?: number;
+  folga?: number;
+  afastamento?: number;
+  troca_plantao?: number;
+  treinamento?: number;
+};
