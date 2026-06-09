@@ -15,12 +15,8 @@ export interface CalendarEvent {
   description?: string | null;
   /** @nullable */
   employeeName?: string | null;
-  /** ISO 8601 date or datetime */
   start: string;
-  /**
-     * ISO 8601 date or datetime
-     * @nullable
-     */
+  /** @nullable */
   end?: string | null;
   allDay: boolean;
   createdAt: string;

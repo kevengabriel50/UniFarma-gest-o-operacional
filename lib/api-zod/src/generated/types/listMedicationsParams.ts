@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListEventsParams = {
-start?: string;
-end?: string;
-category?: string;
+export type ListMedicationsParams = {
+/**
+ * Search by name, barcode, internal code, or manufacturer
+ */
+q?: string;
 };

@@ -1,15 +1,390 @@
-import { Pill } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  useListMedications,
+  useCreateMedication,
+  useUpdateMedication,
+  useGetMedicationByBarcode,
+  getGetMedicationByBarcodeQueryKey,
+} from "@workspace/api-client-react";
+import type { Medication } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Pill,
+  Plus,
+  Search,
+  Barcode,
+  Pencil,
+  PowerOff,
+  Power,
+  Loader2,
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { getListMedicationsQueryKey } from "@workspace/api-client-react";
+
+type MedFormData = {
+  codigoBarras: string;
+  codigoInterno: string;
+  nome: string;
+  apresentacao: string;
+  laboratorio: string;
+};
+
+const EMPTY_FORM: MedFormData = {
+  codigoBarras: "",
+  codigoInterno: "",
+  nome: "",
+  apresentacao: "",
+  laboratorio: "",
+};
 
 export default function MedicamentosPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMed, setEditingMed] = useState<Medication | null>(null);
+  const [form, setForm] = useState<MedFormData>(EMPTY_FORM);
+
+  const [scanInput, setScanInput] = useState("");
+  const [scanBarcode, setScanBarcode] = useState<string | null>(null);
+  const scanRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data: medications = [], isLoading } = useListMedications(
+    debouncedSearch ? { q: debouncedSearch } : {}
+  );
+
+  const { data: scannedMed, isError: scanNotFound } = useGetMedicationByBarcode(
+    scanBarcode ?? "",
+    { query: { enabled: !!scanBarcode, queryKey: getGetMedicationByBarcodeQueryKey(scanBarcode ?? "") } }
+  );
+
+  useEffect(() => {
+    if (!scanBarcode) return;
+    if (scannedMed) {
+      openEdit(scannedMed);
+      setScanBarcode(null);
+      setScanInput("");
+    } else if (scanNotFound) {
+      setForm((f) => ({ ...f, codigoBarras: scanBarcode }));
+      setEditingMed(null);
+      setIsModalOpen(true);
+      setScanBarcode(null);
+      setScanInput("");
+    }
+  }, [scannedMed, scanNotFound, scanBarcode]);
+
+  const createMutation = useCreateMedication({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListMedicationsQueryKey() });
+        toast({ title: "Medicamento cadastrado com sucesso" });
+        closeModal();
+      },
+      onError: (err: unknown) => {
+        const msg =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+            : undefined;
+        toast({ title: msg ?? "Erro ao cadastrar", variant: "destructive" });
+      },
+    },
+  });
+
+  const updateMutation = useUpdateMedication({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListMedicationsQueryKey() });
+        toast({ title: "Medicamento atualizado" });
+        closeModal();
+      },
+      onError: () => toast({ title: "Erro ao atualizar", variant: "destructive" }),
+    },
+  });
+
+  function openEdit(med: Medication) {
+    setEditingMed(med);
+    setForm({
+      codigoBarras: med.codigoBarras,
+      codigoInterno: med.codigoInterno,
+      nome: med.nome,
+      apresentacao: med.apresentacao,
+      laboratorio: med.laboratorio,
+    });
+    setIsModalOpen(true);
+  }
+
+  function openNew() {
+    setEditingMed(null);
+    setForm(EMPTY_FORM);
+    setIsModalOpen(true);
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+    setEditingMed(null);
+    setForm(EMPTY_FORM);
+  }
+
+  function handleSave() {
+    if (!form.codigoBarras || !form.codigoInterno || !form.nome || !form.apresentacao || !form.laboratorio) {
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (editingMed) {
+      updateMutation.mutate({ id: editingMed.id, data: form });
+    } else {
+      createMutation.mutate({ data: form });
+    }
+  }
+
+  function handleToggleAtivo(med: Medication) {
+    updateMutation.mutate({ id: med.id, data: { ativo: !med.ativo } });
+  }
+
+  function handleScanKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && scanInput.trim()) {
+      setScanBarcode(scanInput.trim());
+    }
+  }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center text-center p-6">
-      <div className="w-20 h-20 bg-[#e6f7f0] rounded-full flex items-center justify-center mb-6">
-        <Pill className="w-10 h-10 text-[#00995D]" />
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+      {/* Header controls */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Barcode scan input */}
+        <div className="relative flex-1">
+          <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            ref={scanRef}
+            placeholder="Bipe o código de barras para buscar ou cadastrar..."
+            value={scanInput}
+            onChange={(e) => setScanInput(e.target.value)}
+            onKeyDown={handleScanKeyDown}
+            className="pl-9 font-mono text-sm"
+            data-testid="input-scan"
+          />
+        </div>
+
+        {/* Text search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Buscar por nome, código ou laboratório..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 text-sm"
+            data-testid="input-search"
+          />
+        </div>
+
+        <Button
+          onClick={openNew}
+          className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2 shrink-0"
+          data-testid="button-novo-medicamento"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Medicamento
+        </Button>
       </div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Medicamentos em construção</h1>
-      <p className="text-gray-500 max-w-md">
-        Esta seção será implementada em breve. O controle de estoque e relatórios de validade estarão disponíveis aqui.
-      </p>
+
+      {/* Table */}
+      <Card className="shadow-none border border-gray-100 overflow-hidden">
+        <CardHeader className="bg-[#f7fdf9] border-b border-[#e6f7f0] px-5 py-3">
+          <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Pill className="w-4 h-4 text-[#00995D]" />
+            Cadastro de Medicamentos
+            {medications.length > 0 && (
+              <Badge className="ml-1 bg-[#e6f7f0] text-[#00995D] border border-[#a3e6c8] text-xs">
+                {medications.length}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Carregando...</span>
+            </div>
+          ) : medications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-4">
+              <div className="w-14 h-14 bg-[#e6f7f0] rounded-full flex items-center justify-center">
+                <Pill className="w-7 h-7 text-[#00995D]" />
+              </div>
+              <p className="text-sm font-medium text-gray-500">Nenhum medicamento cadastrado</p>
+              <p className="text-xs text-gray-400">
+                Clique em "Novo Medicamento" ou bipe um código de barras para começar.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Código</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Nome</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Apresentação</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Laboratório</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cadastro</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                    <th className="px-4 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {medications.map((med) => (
+                    <tr
+                      key={med.id}
+                      className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${!med.ativo ? "opacity-50" : ""}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-mono text-xs text-gray-500">{med.codigoInterno}</div>
+                        <div className="font-mono text-[10px] text-gray-400">{med.codigoBarras}</div>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{med.nome}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{med.apresentacao}</td>
+                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{med.laboratorio}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+                        {format(new Date(med.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant="outline"
+                          className={med.ativo
+                            ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                            : "bg-gray-100 text-gray-400 border-gray-200 text-xs"
+                          }
+                        >
+                          {med.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button
+                            onClick={() => openEdit(med)}
+                            className="p-1.5 rounded text-gray-400 hover:text-[#00995D] hover:bg-[#e6f7f0] transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleAtivo(med)}
+                            className={`p-1.5 rounded transition-colors ${
+                              med.ativo
+                                ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                                : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                            }`}
+                            title={med.ativo ? "Inativar" : "Reativar"}
+                          >
+                            {med.ativo ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={(o) => { if (!o) closeModal(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pill className="w-5 h-5 text-[#00995D]" />
+              {editingMed ? "Editar Medicamento" : "Novo Medicamento"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Código de Barras <span className="text-red-400">*</span></Label>
+              <Input
+                value={form.codigoBarras}
+                onChange={(e) => setForm((f) => ({ ...f, codigoBarras: e.target.value }))}
+                placeholder="Ex: 7891234567890"
+                className="font-mono text-sm"
+                data-testid="input-codigo-barras"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Código Interno <span className="text-red-400">*</span></Label>
+              <Input
+                value={form.codigoInterno}
+                onChange={(e) => setForm((f) => ({ ...f, codigoInterno: e.target.value }))}
+                placeholder="Ex: MED0001"
+                className="font-mono text-sm"
+                data-testid="input-codigo-interno"
+              />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs">Nome do Medicamento <span className="text-red-400">*</span></Label>
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
+                placeholder="Ex: Dipirona"
+                data-testid="input-nome"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Apresentação <span className="text-red-400">*</span></Label>
+              <Input
+                value={form.apresentacao}
+                onChange={(e) => setForm((f) => ({ ...f, apresentacao: e.target.value }))}
+                placeholder="Ex: 500mg/ml"
+                data-testid="input-apresentacao"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Laboratório <span className="text-red-400">*</span></Label>
+              <Input
+                value={form.laboratorio}
+                onChange={(e) => setForm((f) => ({ ...f, laboratorio: e.target.value }))}
+                placeholder="Ex: EMS"
+                data-testid="input-laboratorio"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={closeModal} disabled={isSaving}>Cancelar</Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
+              data-testid="button-salvar-medicamento"
+            >
+              {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {editingMed ? "Salvar Alterações" : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

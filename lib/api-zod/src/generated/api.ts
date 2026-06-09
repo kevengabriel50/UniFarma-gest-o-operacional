@@ -9,7 +9,6 @@ import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -21,9 +20,9 @@ export const HealthCheckResponse = zod.object({
  * @summary List all calendar events
  */
 export const ListEventsQueryParams = zod.object({
-  "start": zod.coerce.string().optional().describe('ISO date string for range start'),
-  "end": zod.coerce.string().optional().describe('ISO date string for range end'),
-  "category": zod.coerce.string().optional().describe('Filter by event category')
+  "start": zod.coerce.string().optional(),
+  "end": zod.coerce.string().optional(),
+  "category": zod.coerce.string().optional()
 })
 
 export const ListEventsResponseItem = zod.object({
@@ -32,8 +31,8 @@ export const ListEventsResponseItem = zod.object({
   "category": zod.enum(['ferias', 'folga', 'afastamento', 'troca_plantao', 'treinamento']),
   "description": zod.string().nullish(),
   "employeeName": zod.string().nullish(),
-  "start": zod.string().describe('ISO 8601 date or datetime'),
-  "end": zod.string().nullish().describe('ISO 8601 date or datetime'),
+  "start": zod.string(),
+  "end": zod.string().nullish(),
   "allDay": zod.boolean(),
   "createdAt": zod.string()
 })
@@ -70,8 +69,8 @@ export const GetEventResponse = zod.object({
   "category": zod.enum(['ferias', 'folga', 'afastamento', 'troca_plantao', 'treinamento']),
   "description": zod.string().nullish(),
   "employeeName": zod.string().nullish(),
-  "start": zod.string().describe('ISO 8601 date or datetime'),
-  "end": zod.string().nullish().describe('ISO 8601 date or datetime'),
+  "start": zod.string(),
+  "end": zod.string().nullish(),
   "allDay": zod.boolean(),
   "createdAt": zod.string()
 })
@@ -103,8 +102,8 @@ export const UpdateEventResponse = zod.object({
   "category": zod.enum(['ferias', 'folga', 'afastamento', 'troca_plantao', 'treinamento']),
   "description": zod.string().nullish(),
   "employeeName": zod.string().nullish(),
-  "start": zod.string().describe('ISO 8601 date or datetime'),
-  "end": zod.string().nullish().describe('ISO 8601 date or datetime'),
+  "start": zod.string(),
+  "end": zod.string().nullish(),
   "allDay": zod.boolean(),
   "createdAt": zod.string()
 })
@@ -119,7 +118,7 @@ export const DeleteEventParams = zod.object({
 
 
 /**
- * @summary Get event counts grouped by category for current month
+ * @summary Get event counts grouped by category
  */
 export const GetEventsSummaryResponse = zod.object({
   "total": zod.number(),
@@ -130,6 +129,207 @@ export const GetEventsSummaryResponse = zod.object({
   "troca_plantao": zod.number().optional(),
   "treinamento": zod.number().optional()
 })
+})
+
+
+/**
+ * @summary List medications, optionally filtered by search query
+ */
+export const ListMedicationsQueryParams = zod.object({
+  "q": zod.coerce.string().optional().describe('Search by name, barcode, internal code, or manufacturer')
+})
+
+export const ListMedicationsResponseItem = zod.object({
+  "id": zod.number(),
+  "codigoBarras": zod.string(),
+  "codigoInterno": zod.string(),
+  "nome": zod.string(),
+  "apresentacao": zod.string(),
+  "laboratorio": zod.string(),
+  "ativo": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListMedicationsResponse = zod.array(ListMedicationsResponseItem)
+
+
+/**
+ * @summary Create a new medication
+ */
+
+
+
+
+
+
+
+export const CreateMedicationBody = zod.object({
+  "codigoBarras": zod.string().min(1),
+  "codigoInterno": zod.string().min(1),
+  "nome": zod.string().min(1),
+  "apresentacao": zod.string().min(1),
+  "laboratorio": zod.string().min(1),
+  "ativo": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Look up a medication by barcode
+ */
+export const GetMedicationByBarcodeParams = zod.object({
+  "codigoBarras": zod.coerce.string()
+})
+
+export const GetMedicationByBarcodeResponse = zod.object({
+  "id": zod.number(),
+  "codigoBarras": zod.string(),
+  "codigoInterno": zod.string(),
+  "nome": zod.string(),
+  "apresentacao": zod.string(),
+  "laboratorio": zod.string(),
+  "ativo": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update a medication (edit or inactivate)
+ */
+export const UpdateMedicationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateMedicationBody = zod.object({
+  "codigoBarras": zod.string().optional(),
+  "codigoInterno": zod.string().optional(),
+  "nome": zod.string().optional(),
+  "apresentacao": zod.string().optional(),
+  "laboratorio": zod.string().optional(),
+  "ativo": zod.boolean().optional()
+})
+
+export const UpdateMedicationResponse = zod.object({
+  "id": zod.number(),
+  "codigoBarras": zod.string(),
+  "codigoInterno": zod.string(),
+  "nome": zod.string(),
+  "apresentacao": zod.string(),
+  "laboratorio": zod.string(),
+  "ativo": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary List all DOM atendimentos
+ */
+export const ListDomAtendimentosResponseItem = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+export const ListDomAtendimentosResponse = zod.array(ListDomAtendimentosResponseItem)
+
+
+/**
+ * @summary Start a new DOM atendimento
+ */
+
+
+
+
+
+export const CreateDomAtendimentoBody = zod.object({
+  "nomePaciente": zod.string().min(1),
+  "numeroAtendimento": zod.string().min(1),
+  "data": zod.string().min(1),
+  "observacoes": zod.string().optional(),
+  "status": zod.enum(['em_andamento', 'finalizado']).optional()
+})
+
+
+/**
+ * @summary Get a DOM atendimento with its items
+ */
+export const GetDomAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetDomAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "itens": zod.array(zod.object({
+  "id": zod.number(),
+  "atendimentoId": zod.number(),
+  "codigoBarras": zod.string(),
+  "codigoInterno": zod.string(),
+  "nome": zod.string(),
+  "lote": zod.string(),
+  "quantidade": zod.number(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Finalize a DOM atendimento
+ */
+export const FinalizeDomAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const FinalizeDomAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Add an item to a DOM atendimento
+ */
+export const AddDomItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+
+
+export const AddDomItemBody = zod.object({
+  "codigoBarras": zod.string().min(1),
+  "codigoInterno": zod.string().min(1),
+  "nome": zod.string().min(1),
+  "lote": zod.string().min(1),
+  "quantidade": zod.number().min(1)
+})
+
+
+/**
+ * @summary Remove an item from a DOM atendimento
+ */
+export const DeleteDomItemParams = zod.object({
+  "atendimentoId": zod.coerce.number(),
+  "itemId": zod.coerce.number()
 })
 
 

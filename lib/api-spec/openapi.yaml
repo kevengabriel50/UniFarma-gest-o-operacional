@@ -11,13 +11,16 @@ tags:
     description: Health operations
   - name: events
     description: Calendar event operations
+  - name: medications
+    description: Medication master data
+  - name: dom
+    description: DOM (Atendimento Domiciliar) operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -25,6 +28,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
   /events:
     get:
       operationId: listEvents
@@ -36,19 +40,16 @@ paths:
           required: false
           schema:
             type: string
-          description: ISO date string for range start
         - name: end
           in: query
           required: false
           schema:
             type: string
-          description: ISO date string for range end
         - name: category
           in: query
           required: false
           schema:
             type: string
-          description: Filter by event category
       responses:
         "200":
           description: List of events
@@ -141,7 +142,7 @@ paths:
     get:
       operationId: getEventsSummary
       tags: [events]
-      summary: Get event counts grouped by category for current month
+      summary: Get event counts grouped by category
       responses:
         "200":
           description: Summary by category
@@ -150,6 +151,216 @@ paths:
               schema:
                 $ref: "#/components/schemas/EventsSummary"
 
+  /medications:
+    get:
+      operationId: listMedications
+      tags: [medications]
+      summary: List medications, optionally filtered by search query
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search by name, barcode, internal code, or manufacturer
+      responses:
+        "200":
+          description: List of medications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Medication"
+    post:
+      operationId: createMedication
+      tags: [medications]
+      summary: Create a new medication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicationInput"
+      responses:
+        "201":
+          description: Created medication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medication"
+        "400":
+          description: Bad request
+        "409":
+          description: Duplicate barcode or internal code
+  /medications/barcode/{codigoBarras}:
+    get:
+      operationId: getMedicationByBarcode
+      tags: [medications]
+      summary: Look up a medication by barcode
+      parameters:
+        - name: codigoBarras
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Medication found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medication"
+        "404":
+          description: Not found
+  /medications/{id}:
+    patch:
+      operationId: updateMedication
+      tags: [medications]
+      summary: Update a medication (edit or inactivate)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicationUpdate"
+      responses:
+        "200":
+          description: Updated medication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medication"
+        "404":
+          description: Not found
+
+  /dom/atendimentos:
+    get:
+      operationId: listDomAtendimentos
+      tags: [dom]
+      summary: List all DOM atendimentos
+      responses:
+        "200":
+          description: List of atendimentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DomAtendimento"
+    post:
+      operationId: createDomAtendimento
+      tags: [dom]
+      summary: Start a new DOM atendimento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomAtendimentoInput"
+      responses:
+        "201":
+          description: Created atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomAtendimento"
+        "400":
+          description: Bad request
+  /dom/atendimentos/{id}:
+    get:
+      operationId: getDomAtendimento
+      tags: [dom]
+      summary: Get a DOM atendimento with its items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Atendimento with items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomAtendimentoDetail"
+        "404":
+          description: Not found
+  /dom/atendimentos/{id}/finalizar:
+    patch:
+      operationId: finalizeDomAtendimento
+      tags: [dom]
+      summary: Finalize a DOM atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Finalized atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomAtendimento"
+        "404":
+          description: Not found
+  /dom/atendimentos/{id}/itens:
+    post:
+      operationId: addDomItem
+      tags: [dom]
+      summary: Add an item to a DOM atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomItem"
+        "400":
+          description: Bad request
+  /dom/atendimentos/{atendimentoId}/itens/{itemId}:
+    delete:
+      operationId: deleteDomItem
+      tags: [dom]
+      summary: Remove an item from a DOM atendimento
+      parameters:
+        - name: atendimentoId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -157,8 +368,8 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
+
     CalendarEvent:
       type: object
       required: [id, title, category, start, allDay, createdAt]
@@ -176,10 +387,8 @@ components:
           type: ["string", "null"]
         start:
           type: string
-          description: ISO 8601 date or datetime
         end:
           type: ["string", "null"]
-          description: ISO 8601 date or datetime
         allDay:
           type: boolean
         createdAt:
@@ -242,3 +451,149 @@ components:
               type: integer
             treinamento:
               type: integer
+
+    Medication:
+      type: object
+      required: [id, codigoBarras, codigoInterno, nome, apresentacao, laboratorio, ativo, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        codigoBarras:
+          type: string
+        codigoInterno:
+          type: string
+        nome:
+          type: string
+        apresentacao:
+          type: string
+        laboratorio:
+          type: string
+        ativo:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    MedicationInput:
+      type: object
+      required: [codigoBarras, codigoInterno, nome, apresentacao, laboratorio]
+      properties:
+        codigoBarras:
+          type: string
+          minLength: 1
+        codigoInterno:
+          type: string
+          minLength: 1
+        nome:
+          type: string
+          minLength: 1
+        apresentacao:
+          type: string
+          minLength: 1
+        laboratorio:
+          type: string
+          minLength: 1
+        ativo:
+          type: boolean
+    MedicationUpdate:
+      type: object
+      properties:
+        codigoBarras:
+          type: string
+        codigoInterno:
+          type: string
+        nome:
+          type: string
+        apresentacao:
+          type: string
+        laboratorio:
+          type: string
+        ativo:
+          type: boolean
+
+    DomAtendimento:
+      type: object
+      required: [id, nomePaciente, numeroAtendimento, data, status, createdAt]
+      properties:
+        id:
+          type: integer
+        nomePaciente:
+          type: string
+        numeroAtendimento:
+          type: string
+        data:
+          type: string
+        observacoes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [em_andamento, finalizado]
+        createdAt:
+          type: string
+    DomAtendimentoInput:
+      type: object
+      required: [nomePaciente, numeroAtendimento, data]
+      properties:
+        nomePaciente:
+          type: string
+          minLength: 1
+        numeroAtendimento:
+          type: string
+          minLength: 1
+        data:
+          type: string
+          minLength: 1
+        observacoes:
+          type: string
+        status:
+          type: string
+          enum: [em_andamento, finalizado]
+    DomAtendimentoDetail:
+      allOf:
+        - $ref: "#/components/schemas/DomAtendimento"
+        - type: object
+          required: [itens]
+          properties:
+            itens:
+              type: array
+              items:
+                $ref: "#/components/schemas/DomItem"
+    DomItem:
+      type: object
+      required: [id, atendimentoId, codigoBarras, codigoInterno, nome, lote, quantidade, createdAt]
+      properties:
+        id:
+          type: integer
+        atendimentoId:
+          type: integer
+        codigoBarras:
+          type: string
+        codigoInterno:
+          type: string
+        nome:
+          type: string
+        lote:
+          type: string
+        quantidade:
+          type: integer
+        createdAt:
+          type: string
+    DomItemInput:
+      type: object
+      required: [codigoBarras, codigoInterno, nome, lote, quantidade]
+      properties:
+        codigoBarras:
+          type: string
+          minLength: 1
+        codigoInterno:
+          type: string
+          minLength: 1
+        nome:
+          type: string
+          minLength: 1
+        lote:
+          type: string
+          minLength: 1
+        quantidade:
+          type: integer
+          minimum: 1

@@ -23,9 +23,18 @@ import type {
   CalendarEvent,
   CalendarEventInput,
   CalendarEventUpdate,
+  DomAtendimento,
+  DomAtendimentoDetail,
+  DomAtendimentoInput,
+  DomItem,
+  DomItemInput,
   EventsSummary,
   HealthStatus,
-  ListEventsParams
+  ListEventsParams,
+  ListMedicationsParams,
+  Medication,
+  MedicationInput,
+  MedicationUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -49,7 +58,6 @@ export const getHealthCheckUrl = () => {
 }
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
@@ -501,7 +509,7 @@ export const getGetEventsSummaryUrl = () => {
 }
 
 /**
- * @summary Get event counts grouped by category for current month
+ * @summary Get event counts grouped by category
  */
 export const getEventsSummary = async ( options?: RequestInit): Promise<EventsSummary> => {
 
@@ -548,7 +556,7 @@ export type GetEventsSummaryQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get event counts grouped by category for current month
+ * @summary Get event counts grouped by category
  */
 
 export function useGetEventsSummary<TData = Awaited<ReturnType<typeof getEventsSummary>>, TError = ErrorType<unknown>>(
@@ -568,4 +576,747 @@ export function useGetEventsSummary<TData = Awaited<ReturnType<typeof getEventsS
 
 
 
+
+export const getListMedicationsUrl = (params?: ListMedicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/medications?${stringifiedParams}` : `/api/medications`
+}
+
+/**
+ * @summary List medications, optionally filtered by search query
+ */
+export const listMedications = async (params?: ListMedicationsParams, options?: RequestInit): Promise<Medication[]> => {
+
+  return customFetch<Medication[]>(getListMedicationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMedicationsQueryKey = (params?: ListMedicationsParams,) => {
+    return [
+    `/api/medications`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListMedicationsQueryOptions = <TData = Awaited<ReturnType<typeof listMedications>>, TError = ErrorType<unknown>>(params?: ListMedicationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMedications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMedicationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMedications>>> = ({ signal }) => listMedications(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMedications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMedicationsQueryResult = NonNullable<Awaited<ReturnType<typeof listMedications>>>
+export type ListMedicationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List medications, optionally filtered by search query
+ */
+
+export function useListMedications<TData = Awaited<ReturnType<typeof listMedications>>, TError = ErrorType<unknown>>(
+ params?: ListMedicationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMedications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMedicationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateMedicationUrl = () => {
+
+
+
+
+  return `/api/medications`
+}
+
+/**
+ * @summary Create a new medication
+ */
+export const createMedication = async (medicationInput: MedicationInput, options?: RequestInit): Promise<Medication> => {
+
+  return customFetch<Medication>(getCreateMedicationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      medicationInput,)
+  }
+);}
+
+
+
+
+export const getCreateMedicationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMedication>>, TError,{data: BodyType<MedicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMedication>>, TError,{data: BodyType<MedicationInput>}, TContext> => {
+
+const mutationKey = ['createMedication'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMedication>>, {data: BodyType<MedicationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMedication(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMedicationMutationResult = NonNullable<Awaited<ReturnType<typeof createMedication>>>
+    export type CreateMedicationMutationBody = BodyType<MedicationInput>
+    export type CreateMedicationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new medication
+ */
+export const useCreateMedication = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMedication>>, TError,{data: BodyType<MedicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMedication>>,
+        TError,
+        {data: BodyType<MedicationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMedicationMutationOptions(options));
+    }
+
+export const getGetMedicationByBarcodeUrl = (codigoBarras: string,) => {
+
+
+
+
+  return `/api/medications/barcode/${codigoBarras}`
+}
+
+/**
+ * @summary Look up a medication by barcode
+ */
+export const getMedicationByBarcode = async (codigoBarras: string, options?: RequestInit): Promise<Medication> => {
+
+  return customFetch<Medication>(getGetMedicationByBarcodeUrl(codigoBarras),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMedicationByBarcodeQueryKey = (codigoBarras: string,) => {
+    return [
+    `/api/medications/barcode/${codigoBarras}`
+    ] as const;
+    }
+
+
+export const getGetMedicationByBarcodeQueryOptions = <TData = Awaited<ReturnType<typeof getMedicationByBarcode>>, TError = ErrorType<void>>(codigoBarras: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMedicationByBarcode>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMedicationByBarcodeQueryKey(codigoBarras);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMedicationByBarcode>>> = ({ signal }) => getMedicationByBarcode(codigoBarras, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(codigoBarras), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMedicationByBarcode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMedicationByBarcodeQueryResult = NonNullable<Awaited<ReturnType<typeof getMedicationByBarcode>>>
+export type GetMedicationByBarcodeQueryError = ErrorType<void>
+
+
+/**
+ * @summary Look up a medication by barcode
+ */
+
+export function useGetMedicationByBarcode<TData = Awaited<ReturnType<typeof getMedicationByBarcode>>, TError = ErrorType<void>>(
+ codigoBarras: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMedicationByBarcode>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMedicationByBarcodeQueryOptions(codigoBarras,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateMedicationUrl = (id: number,) => {
+
+
+
+
+  return `/api/medications/${id}`
+}
+
+/**
+ * @summary Update a medication (edit or inactivate)
+ */
+export const updateMedication = async (id: number,
+    medicationUpdate: MedicationUpdate, options?: RequestInit): Promise<Medication> => {
+
+  return customFetch<Medication>(getUpdateMedicationUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      medicationUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateMedicationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMedication>>, TError,{id: number;data: BodyType<MedicationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMedication>>, TError,{id: number;data: BodyType<MedicationUpdate>}, TContext> => {
+
+const mutationKey = ['updateMedication'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMedication>>, {id: number;data: BodyType<MedicationUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMedication(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMedicationMutationResult = NonNullable<Awaited<ReturnType<typeof updateMedication>>>
+    export type UpdateMedicationMutationBody = BodyType<MedicationUpdate>
+    export type UpdateMedicationMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a medication (edit or inactivate)
+ */
+export const useUpdateMedication = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMedication>>, TError,{id: number;data: BodyType<MedicationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMedication>>,
+        TError,
+        {id: number;data: BodyType<MedicationUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMedicationMutationOptions(options));
+    }
+
+export const getListDomAtendimentosUrl = () => {
+
+
+
+
+  return `/api/dom/atendimentos`
+}
+
+/**
+ * @summary List all DOM atendimentos
+ */
+export const listDomAtendimentos = async ( options?: RequestInit): Promise<DomAtendimento[]> => {
+
+  return customFetch<DomAtendimento[]>(getListDomAtendimentosUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDomAtendimentosQueryKey = () => {
+    return [
+    `/api/dom/atendimentos`
+    ] as const;
+    }
+
+
+export const getListDomAtendimentosQueryOptions = <TData = Awaited<ReturnType<typeof listDomAtendimentos>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDomAtendimentos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDomAtendimentosQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDomAtendimentos>>> = ({ signal }) => listDomAtendimentos({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDomAtendimentos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDomAtendimentosQueryResult = NonNullable<Awaited<ReturnType<typeof listDomAtendimentos>>>
+export type ListDomAtendimentosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all DOM atendimentos
+ */
+
+export function useListDomAtendimentos<TData = Awaited<ReturnType<typeof listDomAtendimentos>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDomAtendimentos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDomAtendimentosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateDomAtendimentoUrl = () => {
+
+
+
+
+  return `/api/dom/atendimentos`
+}
+
+/**
+ * @summary Start a new DOM atendimento
+ */
+export const createDomAtendimento = async (domAtendimentoInput: DomAtendimentoInput, options?: RequestInit): Promise<DomAtendimento> => {
+
+  return customFetch<DomAtendimento>(getCreateDomAtendimentoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      domAtendimentoInput,)
+  }
+);}
+
+
+
+
+export const getCreateDomAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDomAtendimento>>, TError,{data: BodyType<DomAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDomAtendimento>>, TError,{data: BodyType<DomAtendimentoInput>}, TContext> => {
+
+const mutationKey = ['createDomAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDomAtendimento>>, {data: BodyType<DomAtendimentoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDomAtendimento(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDomAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof createDomAtendimento>>>
+    export type CreateDomAtendimentoMutationBody = BodyType<DomAtendimentoInput>
+    export type CreateDomAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a new DOM atendimento
+ */
+export const useCreateDomAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDomAtendimento>>, TError,{data: BodyType<DomAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDomAtendimento>>,
+        TError,
+        {data: BodyType<DomAtendimentoInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDomAtendimentoMutationOptions(options));
+    }
+
+export const getGetDomAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}`
+}
+
+/**
+ * @summary Get a DOM atendimento with its items
+ */
+export const getDomAtendimento = async (id: number, options?: RequestInit): Promise<DomAtendimentoDetail> => {
+
+  return customFetch<DomAtendimentoDetail>(getGetDomAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDomAtendimentoQueryKey = (id: number,) => {
+    return [
+    `/api/dom/atendimentos/${id}`
+    ] as const;
+    }
+
+
+export const getGetDomAtendimentoQueryOptions = <TData = Awaited<ReturnType<typeof getDomAtendimento>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomAtendimento>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDomAtendimentoQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomAtendimento>>> = ({ signal }) => getDomAtendimento(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDomAtendimento>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDomAtendimentoQueryResult = NonNullable<Awaited<ReturnType<typeof getDomAtendimento>>>
+export type GetDomAtendimentoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a DOM atendimento with its items
+ */
+
+export function useGetDomAtendimento<TData = Awaited<ReturnType<typeof getDomAtendimento>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomAtendimento>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDomAtendimentoQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getFinalizeDomAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}/finalizar`
+}
+
+/**
+ * @summary Finalize a DOM atendimento
+ */
+export const finalizeDomAtendimento = async (id: number, options?: RequestInit): Promise<DomAtendimento> => {
+
+  return customFetch<DomAtendimento>(getFinalizeDomAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getFinalizeDomAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finalizeDomAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['finalizeDomAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finalizeDomAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  finalizeDomAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinalizeDomAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof finalizeDomAtendimento>>>
+
+    export type FinalizeDomAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Finalize a DOM atendimento
+ */
+export const useFinalizeDomAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof finalizeDomAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getFinalizeDomAtendimentoMutationOptions(options));
+    }
+
+export const getAddDomItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}/itens`
+}
+
+/**
+ * @summary Add an item to a DOM atendimento
+ */
+export const addDomItem = async (id: number,
+    domItemInput: DomItemInput, options?: RequestInit): Promise<DomItem> => {
+
+  return customFetch<DomItem>(getAddDomItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      domItemInput,)
+  }
+);}
+
+
+
+
+export const getAddDomItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addDomItem>>, TError,{id: number;data: BodyType<DomItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addDomItem>>, TError,{id: number;data: BodyType<DomItemInput>}, TContext> => {
+
+const mutationKey = ['addDomItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addDomItem>>, {id: number;data: BodyType<DomItemInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addDomItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddDomItemMutationResult = NonNullable<Awaited<ReturnType<typeof addDomItem>>>
+    export type AddDomItemMutationBody = BodyType<DomItemInput>
+    export type AddDomItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Add an item to a DOM atendimento
+ */
+export const useAddDomItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addDomItem>>, TError,{id: number;data: BodyType<DomItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addDomItem>>,
+        TError,
+        {id: number;data: BodyType<DomItemInput>},
+        TContext
+      > => {
+      return useMutation(getAddDomItemMutationOptions(options));
+    }
+
+export const getDeleteDomItemUrl = (atendimentoId: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${atendimentoId}/itens/${itemId}`
+}
+
+/**
+ * @summary Remove an item from a DOM atendimento
+ */
+export const deleteDomItem = async (atendimentoId: number,
+    itemId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteDomItemUrl(atendimentoId,itemId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteDomItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDomItem>>, TError,{atendimentoId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDomItem>>, TError,{atendimentoId: number;itemId: number}, TContext> => {
+
+const mutationKey = ['deleteDomItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDomItem>>, {atendimentoId: number;itemId: number}> = (props) => {
+          const {atendimentoId,itemId} = props ?? {};
+
+          return  deleteDomItem(atendimentoId,itemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDomItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDomItem>>>
+
+    export type DeleteDomItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove an item from a DOM atendimento
+ */
+export const useDeleteDomItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDomItem>>, TError,{atendimentoId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDomItem>>,
+        TError,
+        {atendimentoId: number;itemId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteDomItemMutationOptions(options));
+    }
 

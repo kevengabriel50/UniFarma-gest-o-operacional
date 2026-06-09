@@ -28,12 +28,8 @@ export interface CalendarEvent {
   description?: string | null;
   /** @nullable */
   employeeName?: string | null;
-  /** ISO 8601 date or datetime */
   start: string;
-  /**
-     * ISO 8601 date or datetime
-     * @nullable
-     */
+  /** @nullable */
   end?: string | null;
   allDay: boolean;
   createdAt: string;
@@ -96,18 +92,117 @@ export interface EventsSummary {
   byCategory: EventsSummaryByCategory;
 }
 
+export interface Medication {
+  id: number;
+  codigoBarras: string;
+  codigoInterno: string;
+  nome: string;
+  apresentacao: string;
+  laboratorio: string;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MedicationInput {
+  /** @minLength 1 */
+  codigoBarras: string;
+  /** @minLength 1 */
+  codigoInterno: string;
+  /** @minLength 1 */
+  nome: string;
+  /** @minLength 1 */
+  apresentacao: string;
+  /** @minLength 1 */
+  laboratorio: string;
+  ativo?: boolean;
+}
+
+export interface MedicationUpdate {
+  codigoBarras?: string;
+  codigoInterno?: string;
+  nome?: string;
+  apresentacao?: string;
+  laboratorio?: string;
+  ativo?: boolean;
+}
+
+export type DomAtendimentoStatus = typeof DomAtendimentoStatus[keyof typeof DomAtendimentoStatus];
+
+
+export const DomAtendimentoStatus = {
+  em_andamento: 'em_andamento',
+  finalizado: 'finalizado',
+} as const;
+
+export interface DomAtendimento {
+  id: number;
+  nomePaciente: string;
+  numeroAtendimento: string;
+  data: string;
+  /** @nullable */
+  observacoes?: string | null;
+  status: DomAtendimentoStatus;
+  createdAt: string;
+}
+
+export type DomAtendimentoInputStatus = typeof DomAtendimentoInputStatus[keyof typeof DomAtendimentoInputStatus];
+
+
+export const DomAtendimentoInputStatus = {
+  em_andamento: 'em_andamento',
+  finalizado: 'finalizado',
+} as const;
+
+export interface DomAtendimentoInput {
+  /** @minLength 1 */
+  nomePaciente: string;
+  /** @minLength 1 */
+  numeroAtendimento: string;
+  /** @minLength 1 */
+  data: string;
+  observacoes?: string;
+  status?: DomAtendimentoInputStatus;
+}
+
+export interface DomItem {
+  id: number;
+  atendimentoId: number;
+  codigoBarras: string;
+  codigoInterno: string;
+  nome: string;
+  lote: string;
+  quantidade: number;
+  createdAt: string;
+}
+
+export type DomAtendimentoDetail = DomAtendimento & {
+  itens: DomItem[];
+};
+
+export interface DomItemInput {
+  /** @minLength 1 */
+  codigoBarras: string;
+  /** @minLength 1 */
+  codigoInterno: string;
+  /** @minLength 1 */
+  nome: string;
+  /** @minLength 1 */
+  lote: string;
+  /** @minimum 1 */
+  quantidade: number;
+}
+
 export type ListEventsParams = {
-/**
- * ISO date string for range start
- */
 start?: string;
-/**
- * ISO date string for range end
- */
 end?: string;
-/**
- * Filter by event category
- */
 category?: string;
+};
+
+export type ListMedicationsParams = {
+/**
+ * Search by name, barcode, internal code, or manufacturer
+ */
+q?: string;
 };
 

@@ -8,7 +8,8 @@ import {
   Pill, 
   History, 
   Menu,
-  X
+  X,
+  Home,
 } from "lucide-react";
 
 interface AppLayoutProps {
@@ -21,6 +22,7 @@ const navItems = [
   { path: "/passagem", label: "Passagem de Plantão", icon: ClipboardList },
   { path: "/tasks", label: "Tasks", icon: CheckSquare },
   { path: "/medicamentos", label: "Medicamentos", icon: Pill },
+  { path: "/dom", label: "DOM", icon: Home },
   { path: "/historico", label: "Histórico", icon: History },
 ];
 
