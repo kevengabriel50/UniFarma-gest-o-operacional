@@ -93,14 +93,14 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
   const handlePrint = useCallback(() => {
     const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
 
-    // Zebra GC420t: 7.62cm × 5.08cm, sem área não imprimível
-    // Gera o SVG do código de barras inline via JsBarcode
+    // Zebra GC420t: 76.2mm × 50.8mm, sem área não imprimível
+    // Barras finas e curtas para caber em uma etiqueta (como na etiqueta real)
     const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     try {
       JsBarcode(tempSvg, med.codigoBarras, {
         format: "CODE128",
-        width: 3,
-        height: 100,
+        width: 1.8,   // barras finas
+        height: 40,   // barras curtas — adequado para etiqueta pequena
         displayValue: false,
         margin: 0,
         background: "#ffffff",
@@ -109,10 +109,14 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
     } catch {
       // se falhar, usa SVG vazio
     }
+
+    // Remove atributos width/height explícitos do SVG para o CSS controlar o tamanho
+    tempSvg.removeAttribute("width");
+    tempSvg.removeAttribute("height");
     const barcodeSvgHtml = tempSvg.outerHTML;
 
-    // Dimensões da etiqueta Zebra: 76.2mm × 50.8mm
-    const win = window.open("", "_blank", "width=320,height=240");
+    // Janela de pré-impressão — tamanho próximo da etiqueta real
+    const win = window.open("", "_blank", "width=290,height=200");
     if (!win) return;
 
     win.document.write(`<!DOCTYPE html>
@@ -129,28 +133,31 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
     html, body {
       width: 76.2mm;
       height: 50.8mm;
+      overflow: hidden;
       background: #fff;
       font-family: Arial, Helvetica, sans-serif;
     }
     .label {
       width: 76.2mm;
       height: 50.8mm;
-      padding: 3mm 3mm 2mm 3mm;
+      padding: 2.5mm 2mm 2mm 2mm;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
     }
     .label-name {
       font-weight: bold;
-      font-size: 10pt;
+      font-size: 9pt;
       text-transform: uppercase;
       text-align: center;
-      line-height: 1.2;
-      margin-bottom: 3mm;
-      letter-spacing: 0.03em;
+      line-height: 1.15;
+      letter-spacing: 0.02em;
       color: #000;
       word-break: break-word;
+      max-height: 13mm;
+      overflow: hidden;
     }
     .label-barcode {
       width: 100%;
@@ -158,23 +165,21 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
       justify-content: center;
     }
     .label-barcode svg {
-      width: 68mm;
-      height: auto;
+      width: 70mm;
+      height: 14mm;
       display: block;
     }
     .label-code {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 8pt;
-      letter-spacing: 0.12em;
+      font-size: 7.5pt;
+      letter-spacing: 0.1em;
       color: #000;
       text-align: center;
-      margin-top: 1.5mm;
     }
     .label-internal {
-      font-size: 7pt;
-      color: #444;
+      font-size: 6.5pt;
+      color: #333;
       text-align: center;
-      margin-top: 1mm;
     }
     @media print {
       * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
