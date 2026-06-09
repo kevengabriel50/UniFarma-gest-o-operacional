@@ -1,0 +1,321 @@
+# UniFarma - Expansão dos Módulos de Medicamentos e Atendimento DOM
+
+## Contexto
+
+O UniFarma é um sistema operacional desenvolvido para digitalizar processos internos da farmácia hospitalar.
+
+Nesta etapa, preciso implementar dois novos módulos que serão a base para futuras funcionalidades do sistema:
+
+1. Cadastro Mestre de Medicamentos
+2. Atendimento DOM (Atendimento Domiciliar)
+
+O objetivo não é controlar estoque neste momento.
+
+O objetivo é criar uma base de dados confiável e permanente para rastreabilidade operacional e registro de atendimentos.
+
+---
+
+# 1. MÓDULO DE CADASTRO DE MEDICAMENTOS
+
+## Objetivo
+
+Criar uma base própria de medicamentos independente do sistema SoulMV.
+
+Essa base será utilizada posteriormente por diversos módulos do UniFarma.
+
+---
+
+## Regras
+
+Cada medicamento deve possuir:
+
+* Código de Barras
+* Código Interno
+* Nome do Medicamento
+* Apresentação
+* Laboratório/Fabricante
+* Status (Ativo/Inativo)
+* Data de Cadastro
+* Data de Atualização
+
+Exemplo:
+
+Código de Barras: 7891234567890
+
+Código Interno: MED0001
+
+Nome: Dipirona
+
+Apresentação: 500mg/ml
+
+Laboratório: EMS
+
+---
+
+## Banco de Dados
+
+Criar tabela permanente para medicamentos.
+
+Os registros não podem ser apagados automaticamente.
+
+Dados devem permanecer salvos mesmo após reinicializações da aplicação.
+
+Utilizar persistência real em banco de dados PostgreSQL.
+
+Campos:
+
+* id
+* codigo_barras
+* codigo_interno
+* nome
+* apresentacao
+* laboratorio
+* ativo
+* created_at
+* updated_at
+
+Restrições:
+
+* codigo_barras único
+* codigo_interno único
+
+---
+
+## Busca Inteligente
+
+Permitir busca por:
+
+* Código de barras
+* Código interno
+* Nome do medicamento
+* Laboratório
+
+---
+
+## Leitura por Bipagem
+
+O sistema deve funcionar com leitores USB de código de barras.
+
+Ao bipar um código:
+
+Se o medicamento existir:
+
+* preencher automaticamente os dados
+
+Se não existir:
+
+* exibir opção para cadastrar medicamento
+
+---
+
+## Interface
+
+Criar nova tela chamada:
+
+"Cadastro de Medicamentos"
+
+Operações:
+
+* Adicionar
+* Editar
+* Consultar
+* Inativar
+
+Evitar exclusão definitiva de registros.
+
+---
+
+# 2. MÓDULO DOM (ATENDIMENTO DOMICILIAR)
+
+## Contexto Operacional
+
+Na Unimed existe o setor DOM (Atendimento Domiciliar).
+
+Quando a farmácia do DOM está fechada, a enfermagem busca medicamentos na farmácia do Pronto Atendimento.
+
+Atualmente esse processo é totalmente manual.
+
+A equipe registra em papel:
+
+* Nome do paciente
+* Número do atendimento
+* Data
+* Medicamentos entregues
+* Lotes
+* Quantidades
+
+O objetivo é digitalizar esse processo.
+
+---
+
+## Novo Menu
+
+Criar uma nova opção na barra lateral:
+
+DOM
+
+---
+
+## Fluxo de Atendimento
+
+Ao iniciar um atendimento DOM:
+
+Registrar:
+
+* Nome do Paciente
+* Número do Atendimento
+* Data
+* Observações opcionais
+
+---
+
+## Inclusão de Medicamentos
+
+Durante o atendimento:
+
+O usuário poderá:
+
+### Método 1
+
+Bipar o código de barras
+
+Se encontrado:
+
+Preencher automaticamente:
+
+* Código de barras
+* Código interno
+* Nome do medicamento
+
+O usuário informará manualmente:
+
+* Lote
+* Quantidade
+
+---
+
+### Método 2
+
+Adicionar Manualmente
+
+Caso o medicamento não esteja cadastrado.
+
+Permitir preenchimento manual dos campos.
+
+---
+
+## Estrutura da Lista de Itens
+
+Cada item deve conter:
+
+* Código de Barras
+* Código Interno
+* Nome
+* Lote
+* Quantidade
+
+Permitir:
+
+* Adicionar
+* Editar
+* Remover
+
+antes da finalização do atendimento.
+
+---
+
+## Conferência Obrigatória
+
+Antes de concluir o atendimento:
+
+Exibir tela de revisão.
+
+Mostrar todos os medicamentos registrados.
+
+Mensagem:
+
+"Confirme que os medicamentos e quantidades conferem com a dispensação realizada."
+
+Cada item deverá possuir checkbox individual.
+
+Todos os itens precisam ser conferidos.
+
+Somente após todas as conferências o botão de conclusão será liberado.
+
+---
+
+## Finalização
+
+Ao finalizar:
+
+Gerar registro permanente do atendimento.
+
+Os dados não podem ser perdidos.
+
+Devem permanecer armazenados em banco de dados.
+
+---
+
+## Histórico DOM
+
+Criar histórico específico de atendimentos DOM.
+
+Permitir:
+
+* Visualizar
+* Pesquisar
+* Filtrar por paciente
+* Filtrar por número de atendimento
+* Filtrar por período
+
+---
+
+## Exportação
+
+Todo atendimento DOM deve poder ser exportado em PDF.
+
+O PDF deve conter:
+
+* Nome do paciente
+* Número do atendimento
+* Data
+* Lista de medicamentos
+* Lotes
+* Quantidades
+
+Layout simples e profissional.
+
+---
+
+# Persistência de Dados
+
+IMPORTANTE
+
+Nenhum cadastro de medicamento pode desaparecer.
+
+Nenhum atendimento DOM pode desaparecer.
+
+Todos os dados devem ser armazenados em PostgreSQL.
+
+Não utilizar armazenamento temporário em memória.
+
+Não utilizar React Context para persistência principal.
+
+Utilizar banco de dados real para garantir integridade dos registros.
+
+---
+
+# Interface
+
+Seguir identidade visual já utilizada pelo UniFarma.
+
+Manter:
+
+* Verde institucional
+* Layout simples
+* Facilidade de uso
+* Foco em usuários hospitalares com pouca familiaridade tecnológica
+
+Evitar telas complexas.
+
+Priorizar rapidez operacional.
