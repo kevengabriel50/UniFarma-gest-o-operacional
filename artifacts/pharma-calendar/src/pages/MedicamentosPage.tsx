@@ -91,28 +91,92 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
   }, [med.codigoBarras]);
 
   const handlePrint = useCallback(() => {
-    const svg = svgRef.current;
-    const barcodeSvgHtml = svg ? svg.outerHTML : "";
     const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
 
-    const win = window.open("", "_blank", "width=420,height=360");
+    // Zebra GC420t: 7.62cm × 5.08cm, sem área não imprimível
+    // Gera o SVG do código de barras inline via JsBarcode
+    const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    try {
+      JsBarcode(tempSvg, med.codigoBarras, {
+        format: "CODE128",
+        width: 3,
+        height: 100,
+        displayValue: false,
+        margin: 0,
+        background: "#ffffff",
+        lineColor: "#000000",
+      });
+    } catch {
+      // se falhar, usa SVG vazio
+    }
+    const barcodeSvgHtml = tempSvg.outerHTML;
+
+    // Dimensões da etiqueta Zebra: 76.2mm × 50.8mm
+    const win = window.open("", "_blank", "width=320,height=240");
     if (!win) return;
 
     win.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Etiqueta - ${labelLine}</title>
+  <title>Etiqueta</title>
   <style>
+    @page {
+      size: 76.2mm 50.8mm;
+      margin: 0;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: white; display: flex; justify-content: center; align-items: flex-start; padding: 12px; }
-    .label { text-align: center; width: 260px; }
-    .label-name { font-weight: bold; font-size: 13px; text-transform: uppercase; line-height: 1.2; margin-bottom: 10px; letter-spacing: 0.02em; }
-    .label-barcode svg { width: 100%; height: auto; display: block; }
-    .label-code { font-family: 'Courier New', monospace; font-size: 11px; margin-top: 5px; letter-spacing: 0.08em; color: #111; }
-    .label-internal { font-size: 10px; color: #666; margin-top: 3px; }
+    html, body {
+      width: 76.2mm;
+      height: 50.8mm;
+      background: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .label {
+      width: 76.2mm;
+      height: 50.8mm;
+      padding: 3mm 3mm 2mm 3mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .label-name {
+      font-weight: bold;
+      font-size: 10pt;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 3mm;
+      letter-spacing: 0.03em;
+      color: #000;
+      word-break: break-word;
+    }
+    .label-barcode {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .label-barcode svg {
+      width: 68mm;
+      height: auto;
+      display: block;
+    }
+    .label-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+      color: #000;
+      text-align: center;
+      margin-top: 1.5mm;
+    }
+    .label-internal {
+      font-size: 7pt;
+      color: #444;
+      text-align: center;
+      margin-top: 1mm;
+    }
     @media print {
-      body { padding: 4px; }
       * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
   </style>
@@ -124,7 +188,7 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
     <div class="label-code">${med.codigoBarras}</div>
     ${med.codigoInterno ? `<div class="label-internal">${med.codigoInterno}</div>` : ""}
   </div>
-  <script>window.onload = function() { setTimeout(function() { window.print(); }, 250); }<\/script>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }<\/script>
 </body>
 </html>`);
     win.document.close();

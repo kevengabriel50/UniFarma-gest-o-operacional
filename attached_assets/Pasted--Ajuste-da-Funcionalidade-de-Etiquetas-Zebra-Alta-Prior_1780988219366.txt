@@ -1,0 +1,172 @@
+# Ajuste da Funcionalidade de Etiquetas Zebra (Alta Prioridade)
+
+A impressão de etiquetas já está funcionando e conseguindo enviar trabalhos para a impressora Zebra instalada no Windows. Porém, a implementação atual ainda não atende ao objetivo operacional do projeto.
+
+## Objetivo
+
+Permitir que o UniFarma gere etiquetas simples para medicamentos cadastrados, contendo apenas:
+
+* Nome da medicação
+* Código de barras funcional
+* Número do código de barras abaixo da imagem
+
+O objetivo dessas etiquetas é servir como apoio operacional para o atendimento DOM e permitir que os códigos sejam posteriormente lidos pelo scanner Honeywell e utilizados no fluxo de trabalho do Soul MV.
+
+---
+
+## Problema Atual
+
+Atualmente o sistema está imprimindo apenas o número do código de barras como texto.
+
+Exemplo atual:
+
+CATETER 22 INTRAVENOSO
+
+2000003777772
+
+Isso não é suficiente.
+
+O correto é gerar um código de barras visual real.
+
+Exemplo esperado:
+
+CATETER 22 INTRAVENOSO
+
+[ CÓDIGO DE BARRAS CODE128 ]
+
+2000003777772
+
+---
+
+## Requisitos Obrigatórios
+
+### Código de Barras
+
+* Utilizar padrão CODE128.
+* O código deve ser renderizado visualmente.
+* Não utilizar fontes que apenas simulam barcode.
+* Não imprimir apenas os números.
+* O scanner Honeywell deve conseguir ler normalmente.
+* Os números devem aparecer abaixo do barcode.
+
+Bibliotecas recomendadas:
+
+* JsBarcode
+* bwip-js
+
+---
+
+## Layout da Etiqueta
+
+Vou enviar uma foto contendo as medidas e especificações físicas da etiqueta utilizada na impressora Zebra.
+
+Após receber essa imagem:
+
+* Ajustar largura e altura da etiqueta.
+* Remover margens excessivas.
+* Centralizar conteúdo.
+* Aproveitar o máximo possível da área útil.
+* Garantir boa legibilidade em impressão térmica.
+
+---
+
+## Conteúdo da Etiqueta
+
+Obrigatório:
+
+* Nome da medicação
+* Código de barras CODE128
+* Número do código abaixo do barcode
+
+Opcional:
+
+* Código interno da medicação
+
+Não incluir:
+
+* Lote
+* Validade
+* Fabricante
+* Registro Anvisa
+* Informações regulatórias
+* Descrições extensas
+
+A etiqueta deve ser simples e rápida.
+
+---
+
+## Fluxo de Uso
+
+1. Usuário acessa o cadastro de medicamentos.
+2. Seleciona um medicamento.
+3. Clica em "Imprimir Etiqueta".
+4. O sistema gera a etiqueta já formatada.
+5. O diálogo de impressão do Windows é aberto automaticamente.
+6. O usuário escolhe a impressora desejada.
+7. A etiqueta é impressa.
+
+---
+
+## Compatibilidade
+
+A solução não deve depender exclusivamente da Zebra.
+
+Deve funcionar com qualquer impressora instalada no Windows.
+
+Porém, deve ser otimizada para as impressoras Zebra utilizadas no ambiente hospitalar.
+
+---
+
+## Cadastro de Medicamentos (Ajuste Adicional)
+
+Adicionar os seguintes campos ao cadastro de medicamentos:
+
+Obrigatórios:
+
+* Código de barras
+* Código interno
+* Nome da medicação
+* Quantidade em estoque
+
+Opcionais:
+
+* Laboratório
+* Descrição
+
+---
+
+## Controle de Estoque
+
+Adicionar controle simples de estoque.
+
+Cada medicamento deve possuir uma quantidade cadastrada.
+
+Ao utilizar medicamentos em atendimentos DOM, o estoque deve ser reduzido automaticamente.
+
+---
+
+## Dashboard
+
+Adicionar uma seção chamada "Alertas de Estoque".
+
+Exibir automaticamente medicamentos com estoque baixo.
+
+Sugestão:
+
+* Vermelho: até 5 unidades
+* Amarelo: entre 6 e 9 unidades
+
+Esses alertas devem aparecer no Dashboard sem necessidade de configuração manual.
+
+---
+
+## Resultado Esperado
+
+Ao final da implementação, o UniFarma deve conseguir:
+
+* Cadastrar medicamentos.
+* Controlar quantidade em estoque.
+* Alertar estoque baixo.
+* Gerar etiquetas compatíveis com scanners Honeywell.
+* Imprimir corretamente em impressoras Zebra.
+* Fornecer uma solução prática para o fluxo operacional do atendimento DOM.
