@@ -37,9 +37,12 @@ import {
   Printer,
   X,
   PackageOpen,
+  Copy,
+  Check,
+  Wifi,
+  WifiOff,
+  Send,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 type MedFormData = {
   codigoBarras: string;
@@ -68,210 +71,197 @@ function stockBadge(estoque: number) {
   return { label: `${estoque} un.`, className: "bg-green-50 text-green-700 border-green-200" };
 }
 
+// ── ZPL generation ────────────────────────────────────────────────────────────
+function buildZpl(med: Medication): string {
+  // Zebra GC420t: 76.2mm × 50.8mm at 203dpi = 609 × 406 dots
+  const safeName = [med.nome, med.apresentacao]
+    .filter(Boolean)
+    .join(" ")
+    .toUpperCase()
+    .replace(/[\\^~]/g, "");
+  const safeCode = med.codigoBarras.replace(/[\\^~]/g, "");
+  const safeInternal = (med.codigoInterno ?? "").replace(/[\\^~]/g, "");
+
+  const lines = [
+    "^XA",
+    "^PW609",
+    "^LL406",
+    "^CI28",
+    // Name: centered, up to 3 lines, font height 28
+    `^FO16,15^FB577,3,0,C,0^A0N,28,26^FD${safeName}^FS`,
+    // Barcode CODE128, narrow=2 dots, height=120 dots
+    `^FO16,115^BY2,3^BCN,120,N,N^FD${safeCode}^FS`,
+    // Barcode number
+    `^FO16,255^FB577,1,0,C,0^A0N,24,22^FD${safeCode}^FS`,
+  ];
+  if (safeInternal) {
+    lines.push(`^FO16,290^FB577,1,0,C,0^A0N,20,18^FD${safeInternal}^FS`);
+  }
+  lines.push("^XZ");
+  return lines.join("\n");
+}
+
+type BpPrinter = { uid: string; provider: string; name: string; connection?: string; deviceType?: string; version?: number };
+type BpStatus = "checking" | "connected" | "unavailable";
+
 // ── Label Print Component ─────────────────────────────────────────────────────
 function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => void }) {
+  const { toast } = useToast();
   const svgRef = useRef<SVGSVGElement>(null);
+  const [bpStatus, setBpStatus] = useState<BpStatus>("checking");
+  const [bpPrinter, setBpPrinter] = useState<BpPrinter | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [copied, setCopied] = useState(false);
 
+  // Render barcode preview
   useEffect(() => {
     if (svgRef.current && med.codigoBarras) {
       try {
         JsBarcode(svgRef.current, med.codigoBarras, {
           format: "CODE128",
           width: 2,
-          height: 60,
+          height: 55,
           displayValue: false,
           margin: 0,
           background: "#ffffff",
           lineColor: "#000000",
         });
-      } catch {
-        // barcode rendering failure is non-critical
-      }
+      } catch { /* non-critical */ }
     }
   }, [med.codigoBarras]);
 
-  const handlePrint = useCallback(() => {
-    // ── Etiqueta Zebra GC420t: 76.2mm × 50.8mm a 203dpi ──────────────────────
-    // Renderiza tudo num Canvas com dimensões em pixels exatos da etiqueta,
-    // converte para PNG e imprime como imagem com dimensões físicas em mm.
-    // Isso elimina qualquer variação de escala do browser.
-    const DPI = 203; // DPI nativa da Zebra GC420t
-    const MM_TO_IN = 1 / 25.4;
-    const W = Math.round(76.2 * MM_TO_IN * DPI);  // ≈ 609px
-    const H = Math.round(50.8 * MM_TO_IN * DPI);  // ≈ 406px
-
-    const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Fundo branco
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, W, H);
-
-    const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
-
-    // ── Nome do medicamento ───────────────────────────────────────────────────
-    ctx.fillStyle = "#000000";
-    ctx.textAlign = "center";
-    const nameFontSize = 26;
-    ctx.font = `bold ${nameFontSize}px Arial`;
-    // Quebra de linha se muito longo
-    const maxTextWidth = W - 24;
-    const words = labelLine.split(" ");
-    const lines: string[] = [];
-    let current = "";
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word;
-      if (ctx.measureText(test).width > maxTextWidth && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
+  // Check Zebra BrowserPrint availability
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch("http://localhost:9100/available", {
+          signal: AbortSignal.timeout(2500),
+        });
+        const data = await res.json() as { printer?: BpPrinter[] };
+        const printers = data.printer ?? [];
+        if (printers.length > 0) {
+          setBpPrinter(printers[0]);
+          setBpStatus("connected");
+        } else {
+          setBpStatus("unavailable");
+        }
+      } catch {
+        setBpStatus("unavailable");
       }
-    }
-    if (current) lines.push(current);
+    };
+    check();
+  }, []);
 
-    const lineH = nameFontSize * 1.2;
-    const nameBlockH = lines.length * lineH;
-    const nameY = 18;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, W / 2, nameY + (i + 1) * lineH);
-    });
-
-    // ── Código de barras CODE128 ──────────────────────────────────────────────
-    const barcodeCanvas = document.createElement("canvas");
-    const barcodeH = 130; // altura das barras em px (≈ 16mm)
+  const sendToPrinter = useCallback(async () => {
+    if (!bpPrinter) return;
+    setSending(true);
     try {
-      JsBarcode(barcodeCanvas, med.codigoBarras, {
-        format: "CODE128",
-        width: 2,
-        height: barcodeH,
-        displayValue: false,
-        margin: 0,
-        background: "#ffffff",
-        lineColor: "#000000",
+      const zpl = buildZpl(med);
+      const res = await fetch("http://localhost:9100/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ device: bpPrinter, data: zpl }),
+        signal: AbortSignal.timeout(6000),
       });
+      if (!res.ok) throw new Error();
+      setSent(true);
+      toast({ title: "Etiqueta enviada para a impressora Zebra" });
+      setTimeout(() => setSent(false), 3000);
     } catch {
-      // sem barcode se código inválido
+      toast({ title: "Erro ao enviar para a impressora", variant: "destructive" });
+    } finally {
+      setSending(false);
     }
+  }, [bpPrinter, med, toast]);
 
-    const barcodeY = nameY + nameBlockH + lineH;
-    const barcodeDrawW = W - 24; // ocupa quase toda a largura
-    const barcodeDrawH = barcodeCanvas.height > 0
-      ? Math.round((barcodeCanvas.height / barcodeCanvas.width) * barcodeDrawW)
-      : barcodeH;
-    const barcodeX = Math.round((W - barcodeDrawW) / 2);
-    if (barcodeCanvas.width > 0) {
-      ctx.drawImage(barcodeCanvas, barcodeX, barcodeY, barcodeDrawW, barcodeDrawH);
-    }
-
-    // ── Número do código ──────────────────────────────────────────────────────
-    const codeFontSize = 18;
-    ctx.font = `${codeFontSize}px 'Courier New', Courier, monospace`;
-    ctx.fillStyle = "#000000";
-    ctx.letterSpacing = "2px";
-    const codeY = barcodeY + barcodeDrawH + codeFontSize + 4;
-    ctx.fillText(med.codigoBarras, W / 2, codeY);
-
-    // ── Código interno (opcional) ─────────────────────────────────────────────
-    if (med.codigoInterno) {
-      const intFontSize = 15;
-      ctx.font = `${intFontSize}px Arial`;
-      ctx.fillStyle = "#444444";
-      ctx.fillText(med.codigoInterno, W / 2, codeY + intFontSize + 6);
-    }
-
-    const dataUrl = canvas.toDataURL("image/png");
-
-    // ── Janela de impressão ───────────────────────────────────────────────────
-    const win = window.open("", "_blank", "width=340,height=240");
-    if (!win) return;
-
-    win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Etiqueta</title>
-  <style>
-    @page { size: 76.2mm 50.8mm; margin: 0; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { background: #fff; }
-    .img-wrap {
-      width: 76.2mm;
-      height: 50.8mm;
-      overflow: hidden;
-      display: block;
-    }
-    img {
-      width: 76.2mm;
-      height: 50.8mm;
-      display: block;
-      image-rendering: crisp-edges;
-    }
-    .tip {
-      margin-top: 6px;
-      font-family: Arial, sans-serif;
-      font-size: 10px;
-      color: #888;
-      text-align: center;
-      padding: 0 8px;
-    }
-    @media print { .tip { display: none; } }
-  </style>
-</head>
-<body>
-  <div class="img-wrap">
-    <img src="${dataUrl}" alt="Etiqueta" />
-  </div>
-  <p class="tip">No diálogo de impressão, selecione o papel: ZDesigner GC420t — 7,62 x 5,08 cm</p>
-  <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }<\/script>
-</body>
-</html>`);
-    win.document.close();
+  const copyZpl = useCallback(async () => {
+    await navigator.clipboard.writeText(buildZpl(med));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   }, [med]);
 
   const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-[#00995D]" />
-            Prévia da Etiqueta
+            Etiqueta — {labelLine}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-3 py-4 px-2 bg-white border border-gray-200 rounded-xl">
-          <div className="text-center w-full" style={{ maxWidth: 260 }}>
-            <p className="font-bold text-sm leading-tight uppercase tracking-wide text-gray-900">
-              {labelLine}
-            </p>
-            <div className="mt-3 flex justify-center">
-              <svg ref={svgRef} style={{ width: 220 }} />
-            </div>
-            <p className="font-mono text-xs mt-2 text-gray-700 tracking-widest">
-              {med.codigoBarras}
-            </p>
-            {med.codigoInterno && (
-              <p className="text-xs text-gray-400 mt-0.5">{med.codigoInterno}</p>
-            )}
-          </div>
+        {/* Status BrowserPrint */}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+          bpStatus === "checking"
+            ? "bg-gray-50 text-gray-500 border border-gray-200"
+            : bpStatus === "connected"
+            ? "bg-green-50 text-green-700 border border-green-200"
+            : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+        }`}>
+          {bpStatus === "checking" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          {bpStatus === "connected" && <Wifi className="w-3.5 h-3.5" />}
+          {bpStatus === "unavailable" && <WifiOff className="w-3.5 h-3.5" />}
+          {bpStatus === "checking" && "Verificando Zebra BrowserPrint..."}
+          {bpStatus === "connected" && `Zebra BrowserPrint conectado — ${bpPrinter?.name ?? "impressora"}`}
+          {bpStatus === "unavailable" && "Zebra BrowserPrint não detectado — use o modo ZPL abaixo"}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            <X className="w-4 h-4 mr-1.5" /> Fechar
+        {/* Preview da etiqueta */}
+        <div className="flex flex-col items-center gap-2 py-3 px-2 bg-white border border-gray-200 rounded-xl">
+          <p className="font-bold text-sm leading-tight uppercase tracking-wide text-gray-900 text-center">
+            {labelLine}
+          </p>
+          <svg ref={svgRef} style={{ width: 230 }} />
+          <p className="font-mono text-xs text-gray-700 tracking-widest">{med.codigoBarras}</p>
+          {med.codigoInterno && (
+            <p className="text-[11px] text-gray-400">{med.codigoInterno}</p>
+          )}
+        </div>
+
+        {/* BrowserPrint indisponível: instruções + copiar ZPL */}
+        {bpStatus === "unavailable" && (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 space-y-2">
+            <p className="text-xs font-semibold text-yellow-800">
+              Para imprimir diretamente na Zebra:
+            </p>
+            <ol className="text-xs text-yellow-700 space-y-1 list-decimal list-inside">
+              <li>Baixe e instale o <span className="font-semibold">Zebra BrowserPrint</span> em <span className="font-mono">zebra.com/browserprint</span></li>
+              <li>Inicie o serviço BrowserPrint no Windows</li>
+              <li>Feche e abra novamente esta janela</li>
+            </ol>
+            <p className="text-xs text-yellow-700 mt-1">
+              Ou copie o ZPL abaixo e envie com um utilitário ZPL (ex: ZebraDesigner, ZPL Viewer).
+            </p>
+          </div>
+        )}
+
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={copyZpl} className="gap-2 text-xs">
+            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "ZPL copiado!" : "Copiar ZPL"}
           </Button>
-          <Button
-            onClick={handlePrint}
-            className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir Etiqueta
-          </Button>
+
+          <div className="flex gap-2 flex-1 justify-end">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-3.5 h-3.5 mr-1" /> Fechar
+            </Button>
+            <Button
+              size="sm"
+              onClick={sendToPrinter}
+              disabled={bpStatus !== "connected" || sending}
+              className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
+            >
+              {sending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : sent
+                ? <Check className="w-3.5 h-3.5" />
+                : <Send className="w-3.5 h-3.5" />}
+              {sent ? "Enviado!" : "Enviar para Zebra"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
