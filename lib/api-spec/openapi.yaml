@@ -454,7 +454,7 @@ components:
 
     Medication:
       type: object
-      required: [id, codigoBarras, codigoInterno, nome, apresentacao, laboratorio, ativo, createdAt, updatedAt]
+      required: [id, codigoBarras, codigoInterno, nome, estoque, ativo, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -465,9 +465,13 @@ components:
         nome:
           type: string
         apresentacao:
-          type: string
+          type: ["string", "null"]
         laboratorio:
-          type: string
+          type: ["string", "null"]
+        descricao:
+          type: ["string", "null"]
+        estoque:
+          type: integer
         ativo:
           type: boolean
         createdAt:
@@ -476,7 +480,7 @@ components:
           type: string
     MedicationInput:
       type: object
-      required: [codigoBarras, codigoInterno, nome, apresentacao, laboratorio]
+      required: [codigoBarras, codigoInterno, nome, estoque]
       properties:
         codigoBarras:
           type: string
@@ -489,10 +493,13 @@ components:
           minLength: 1
         apresentacao:
           type: string
-          minLength: 1
         laboratorio:
           type: string
-          minLength: 1
+        descricao:
+          type: string
+        estoque:
+          type: integer
+          minimum: 0
         ativo:
           type: boolean
     MedicationUpdate:
@@ -508,6 +515,11 @@ components:
           type: string
         laboratorio:
           type: string
+        descricao:
+          type: string
+        estoque:
+          type: integer
+          minimum: 0
         ativo:
           type: boolean
 

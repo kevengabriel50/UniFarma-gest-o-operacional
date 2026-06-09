@@ -97,8 +97,13 @@ export interface Medication {
   codigoBarras: string;
   codigoInterno: string;
   nome: string;
-  apresentacao: string;
-  laboratorio: string;
+  /** @nullable */
+  apresentacao?: string | null;
+  /** @nullable */
+  laboratorio?: string | null;
+  /** @nullable */
+  descricao?: string | null;
+  estoque: number;
   ativo: boolean;
   createdAt: string;
   updatedAt: string;
@@ -111,10 +116,11 @@ export interface MedicationInput {
   codigoInterno: string;
   /** @minLength 1 */
   nome: string;
-  /** @minLength 1 */
-  apresentacao: string;
-  /** @minLength 1 */
-  laboratorio: string;
+  apresentacao?: string;
+  laboratorio?: string;
+  descricao?: string;
+  /** @minimum 0 */
+  estoque: number;
   ativo?: boolean;
 }
 
@@ -124,6 +130,9 @@ export interface MedicationUpdate {
   nome?: string;
   apresentacao?: string;
   laboratorio?: string;
+  descricao?: string;
+  /** @minimum 0 */
+  estoque?: number;
   ativo?: boolean;
 }
 

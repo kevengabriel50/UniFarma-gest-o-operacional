@@ -144,8 +144,10 @@ export const ListMedicationsResponseItem = zod.object({
   "codigoBarras": zod.string(),
   "codigoInterno": zod.string(),
   "nome": zod.string(),
-  "apresentacao": zod.string(),
-  "laboratorio": zod.string(),
+  "apresentacao": zod.string().nullish(),
+  "laboratorio": zod.string().nullish(),
+  "descricao": zod.string().nullish(),
+  "estoque": zod.number(),
   "ativo": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -159,7 +161,7 @@ export const ListMedicationsResponse = zod.array(ListMedicationsResponseItem)
 
 
 
-
+export const createMedicationBodyEstoqueMin = 0;
 
 
 
@@ -167,8 +169,10 @@ export const CreateMedicationBody = zod.object({
   "codigoBarras": zod.string().min(1),
   "codigoInterno": zod.string().min(1),
   "nome": zod.string().min(1),
-  "apresentacao": zod.string().min(1),
-  "laboratorio": zod.string().min(1),
+  "apresentacao": zod.string().optional(),
+  "laboratorio": zod.string().optional(),
+  "descricao": zod.string().optional(),
+  "estoque": zod.number().min(createMedicationBodyEstoqueMin),
   "ativo": zod.boolean().optional()
 })
 
@@ -185,8 +189,10 @@ export const GetMedicationByBarcodeResponse = zod.object({
   "codigoBarras": zod.string(),
   "codigoInterno": zod.string(),
   "nome": zod.string(),
-  "apresentacao": zod.string(),
-  "laboratorio": zod.string(),
+  "apresentacao": zod.string().nullish(),
+  "laboratorio": zod.string().nullish(),
+  "descricao": zod.string().nullish(),
+  "estoque": zod.number(),
   "ativo": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -200,12 +206,18 @@ export const UpdateMedicationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateMedicationBodyEstoqueMin = 0;
+
+
+
 export const UpdateMedicationBody = zod.object({
   "codigoBarras": zod.string().optional(),
   "codigoInterno": zod.string().optional(),
   "nome": zod.string().optional(),
   "apresentacao": zod.string().optional(),
   "laboratorio": zod.string().optional(),
+  "descricao": zod.string().optional(),
+  "estoque": zod.number().min(updateMedicationBodyEstoqueMin).optional(),
   "ativo": zod.boolean().optional()
 })
 
@@ -214,8 +226,10 @@ export const UpdateMedicationResponse = zod.object({
   "codigoBarras": zod.string(),
   "codigoInterno": zod.string(),
   "nome": zod.string(),
-  "apresentacao": zod.string(),
-  "laboratorio": zod.string(),
+  "apresentacao": zod.string().nullish(),
+  "laboratorio": zod.string().nullish(),
+  "descricao": zod.string().nullish(),
+  "estoque": zod.number(),
   "ativo": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()

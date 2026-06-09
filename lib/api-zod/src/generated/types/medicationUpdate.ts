@@ -12,5 +12,8 @@ export interface MedicationUpdate {
   nome?: string;
   apresentacao?: string;
   laboratorio?: string;
+  descricao?: string;
+  /** @minimum 0 */
+  estoque?: number;
   ativo?: boolean;
 }

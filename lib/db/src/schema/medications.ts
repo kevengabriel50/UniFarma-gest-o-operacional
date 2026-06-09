@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,8 +7,10 @@ export const medicationsTable = pgTable("medications", {
   codigoBarras: text("codigo_barras").notNull().unique(),
   codigoInterno: text("codigo_interno").notNull().unique(),
   nome: text("nome").notNull(),
-  apresentacao: text("apresentacao").notNull(),
-  laboratorio: text("laboratorio").notNull(),
+  apresentacao: text("apresentacao"),
+  laboratorio: text("laboratorio"),
+  descricao: text("descricao"),
+  estoque: integer("estoque").notNull().default(0),
   ativo: boolean("ativo").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

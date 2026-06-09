@@ -11,8 +11,13 @@ export interface Medication {
   codigoBarras: string;
   codigoInterno: string;
   nome: string;
-  apresentacao: string;
-  laboratorio: string;
+  /** @nullable */
+  apresentacao?: string | null;
+  /** @nullable */
+  laboratorio?: string | null;
+  /** @nullable */
+  descricao?: string | null;
+  estoque: number;
   ativo: boolean;
   createdAt: string;
   updatedAt: string;

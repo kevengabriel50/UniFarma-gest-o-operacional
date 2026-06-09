@@ -13,9 +13,10 @@ export interface MedicationInput {
   codigoInterno: string;
   /** @minLength 1 */
   nome: string;
-  /** @minLength 1 */
-  apresentacao: string;
-  /** @minLength 1 */
-  laboratorio: string;
+  apresentacao?: string;
+  laboratorio?: string;
+  descricao?: string;
+  /** @minimum 0 */
+  estoque: number;
   ativo?: boolean;
 }

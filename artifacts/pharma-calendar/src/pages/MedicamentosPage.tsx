@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import JsBarcode from "jsbarcode";
 import {
   useListMedications,
   useCreateMedication,
   useUpdateMedication,
   useGetMedicationByBarcode,
+  getListMedicationsQueryKey,
   getGetMedicationByBarcodeQueryKey,
 } from "@workspace/api-client-react";
 import type { Medication } from "@workspace/api-client-react";
@@ -12,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -30,10 +33,13 @@ import {
   PowerOff,
   Power,
   Loader2,
+  Tag,
+  Printer,
+  X,
+  PackageOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getListMedicationsQueryKey } from "@workspace/api-client-react";
 
 type MedFormData = {
   codigoBarras: string;
@@ -41,6 +47,8 @@ type MedFormData = {
   nome: string;
   apresentacao: string;
   laboratorio: string;
+  descricao: string;
+  estoque: number;
 };
 
 const EMPTY_FORM: MedFormData = {
@@ -49,8 +57,126 @@ const EMPTY_FORM: MedFormData = {
   nome: "",
   apresentacao: "",
   laboratorio: "",
+  descricao: "",
+  estoque: 0,
 };
 
+function stockBadge(estoque: number) {
+  if (estoque === 0) return { label: "Sem estoque", className: "bg-red-100 text-red-700 border-red-200" };
+  if (estoque < 5) return { label: `${estoque} un.`, className: "bg-red-100 text-red-700 border-red-200" };
+  if (estoque < 10) return { label: `${estoque} un.`, className: "bg-yellow-100 text-yellow-700 border-yellow-200" };
+  return { label: `${estoque} un.`, className: "bg-green-50 text-green-700 border-green-200" };
+}
+
+// ── Label Print Component ─────────────────────────────────────────────────────
+function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => void }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (svgRef.current && med.codigoBarras) {
+      try {
+        JsBarcode(svgRef.current, med.codigoBarras, {
+          format: "CODE128",
+          width: 2,
+          height: 60,
+          displayValue: false,
+          margin: 0,
+          background: "#ffffff",
+          lineColor: "#000000",
+        });
+      } catch {
+        // barcode rendering failure is non-critical
+      }
+    }
+  }, [med.codigoBarras]);
+
+  const handlePrint = useCallback(() => {
+    const svg = svgRef.current;
+    const barcodeSvgHtml = svg ? svg.outerHTML : "";
+    const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
+
+    const win = window.open("", "_blank", "width=420,height=360");
+    if (!win) return;
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Etiqueta - ${labelLine}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: white; display: flex; justify-content: center; align-items: flex-start; padding: 12px; }
+    .label { text-align: center; width: 260px; }
+    .label-name { font-weight: bold; font-size: 13px; text-transform: uppercase; line-height: 1.2; margin-bottom: 10px; letter-spacing: 0.02em; }
+    .label-barcode svg { width: 100%; height: auto; display: block; }
+    .label-code { font-family: 'Courier New', monospace; font-size: 11px; margin-top: 5px; letter-spacing: 0.08em; color: #111; }
+    .label-internal { font-size: 10px; color: #666; margin-top: 3px; }
+    @media print {
+      body { padding: 4px; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="label-name">${labelLine}</div>
+    <div class="label-barcode">${barcodeSvgHtml}</div>
+    <div class="label-code">${med.codigoBarras}</div>
+    ${med.codigoInterno ? `<div class="label-internal">${med.codigoInterno}</div>` : ""}
+  </div>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 250); }<\/script>
+</body>
+</html>`);
+    win.document.close();
+  }, [med]);
+
+  const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-[#00995D]" />
+            Prévia da Etiqueta
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col items-center gap-3 py-4 px-2 bg-white border border-gray-200 rounded-xl">
+          <div className="text-center w-full" style={{ maxWidth: 260 }}>
+            <p className="font-bold text-sm leading-tight uppercase tracking-wide text-gray-900">
+              {labelLine}
+            </p>
+            <div className="mt-3 flex justify-center">
+              <svg ref={svgRef} style={{ width: 220 }} />
+            </div>
+            <p className="font-mono text-xs mt-2 text-gray-700 tracking-widest">
+              {med.codigoBarras}
+            </p>
+            {med.codigoInterno && (
+              <p className="text-xs text-gray-400 mt-0.5">{med.codigoInterno}</p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            <X className="w-4 h-4 mr-1.5" /> Fechar
+          </Button>
+          <Button
+            onClick={handlePrint}
+            className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
+          >
+            <Printer className="w-4 h-4" />
+            Imprimir Etiqueta
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function MedicamentosPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -60,6 +186,7 @@ export default function MedicamentosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
   const [form, setForm] = useState<MedFormData>(EMPTY_FORM);
+  const [labelMed, setLabelMed] = useState<Medication | null>(null);
 
   const [scanInput, setScanInput] = useState("");
   const [scanBarcode, setScanBarcode] = useState<string | null>(null);
@@ -128,8 +255,10 @@ export default function MedicamentosPage() {
       codigoBarras: med.codigoBarras,
       codigoInterno: med.codigoInterno,
       nome: med.nome,
-      apresentacao: med.apresentacao,
-      laboratorio: med.laboratorio,
+      apresentacao: med.apresentacao ?? "",
+      laboratorio: med.laboratorio ?? "",
+      descricao: med.descricao ?? "",
+      estoque: med.estoque,
     });
     setIsModalOpen(true);
   }
@@ -147,14 +276,23 @@ export default function MedicamentosPage() {
   }
 
   function handleSave() {
-    if (!form.codigoBarras || !form.codigoInterno || !form.nome || !form.apresentacao || !form.laboratorio) {
-      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+    if (!form.codigoBarras || !form.codigoInterno || !form.nome) {
+      toast({ title: "Preencha os campos obrigatórios (nome, cód. de barras e cód. interno)", variant: "destructive" });
       return;
     }
+    const payload = {
+      codigoBarras: form.codigoBarras,
+      codigoInterno: form.codigoInterno,
+      nome: form.nome,
+      estoque: form.estoque,
+      apresentacao: form.apresentacao || undefined,
+      laboratorio: form.laboratorio || undefined,
+      descricao: form.descricao || undefined,
+    };
     if (editingMed) {
-      updateMutation.mutate({ id: editingMed.id, data: form });
+      updateMutation.mutate({ id: editingMed.id, data: payload });
     } else {
-      createMutation.mutate({ data: form });
+      createMutation.mutate({ data: payload });
     }
   }
 
@@ -171,10 +309,13 @@ export default function MedicamentosPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 print:hidden">
+      {labelMed && (
+        <LabelPrintModal med={labelMed} onClose={() => setLabelMed(null)} />
+      )}
+
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Barcode scan input */}
         <div className="relative flex-1">
           <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -187,8 +328,6 @@ export default function MedicamentosPage() {
             data-testid="input-scan"
           />
         </div>
-
-        {/* Text search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -199,7 +338,6 @@ export default function MedicamentosPage() {
             data-testid="input-search"
           />
         </div>
-
         <Button
           onClick={openNew}
           className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2 shrink-0"
@@ -248,62 +386,79 @@ export default function MedicamentosPage() {
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Nome</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Apresentação</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Laboratório</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cadastro</th>
+                    <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Estoque</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
-                  {medications.map((med) => (
-                    <tr
-                      key={med.id}
-                      className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${!med.ativo ? "opacity-50" : ""}`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-mono text-xs text-gray-500">{med.codigoInterno}</div>
-                        <div className="font-mono text-[10px] text-gray-400">{med.codigoBarras}</div>
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{med.nome}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{med.apresentacao}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{med.laboratorio}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
-                        {format(new Date(med.createdAt), "dd/MM/yyyy", { locale: ptBR })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant="outline"
-                          className={med.ativo
-                            ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                            : "bg-gray-100 text-gray-400 border-gray-200 text-xs"
-                          }
-                        >
-                          {med.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button
-                            onClick={() => openEdit(med)}
-                            className="p-1.5 rounded text-gray-400 hover:text-[#00995D] hover:bg-[#e6f7f0] transition-colors"
-                            title="Editar"
+                  {medications.map((med) => {
+                    const stock = stockBadge(med.estoque);
+                    return (
+                      <tr
+                        key={med.id}
+                        className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${!med.ativo ? "opacity-50" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-xs text-gray-500">{med.codigoInterno}</div>
+                          <div className="font-mono text-[10px] text-gray-400">{med.codigoBarras}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-800">{med.nome}</div>
+                          {med.descricao && (
+                            <div className="text-xs text-gray-400 truncate max-w-[180px]">{med.descricao}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{med.apresentacao ?? "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{med.laboratorio ?? "—"}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge variant="outline" className={`text-xs font-semibold ${stock.className}`}>
+                            {stock.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant="outline"
+                            className={med.ativo
+                              ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                              : "bg-gray-100 text-gray-400 border-gray-200 text-xs"
+                            }
                           >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleToggleAtivo(med)}
-                            className={`p-1.5 rounded transition-colors ${
-                              med.ativo
-                                ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
-                                : "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                            }`}
-                            title={med.ativo ? "Inativar" : "Reativar"}
-                          >
-                            {med.ativo ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {med.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              onClick={() => setLabelMed(med)}
+                              className="p-1.5 rounded text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                              title="Imprimir Etiqueta"
+                            >
+                              <Tag className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => openEdit(med)}
+                              className="p-1.5 rounded text-gray-400 hover:text-[#00995D] hover:bg-[#e6f7f0] transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleAtivo(med)}
+                              className={`p-1.5 rounded transition-colors ${
+                                med.ativo
+                                  ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                                  : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                              }`}
+                              title={med.ativo ? "Inativar" : "Reativar"}
+                            >
+                              {med.ativo ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -323,7 +478,9 @@ export default function MedicamentosPage() {
 
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Código de Barras <span className="text-red-400">*</span></Label>
+              <Label className="text-xs">
+                Código de Barras <span className="text-red-400">*</span>
+              </Label>
               <Input
                 value={form.codigoBarras}
                 onChange={(e) => setForm((f) => ({ ...f, codigoBarras: e.target.value }))}
@@ -333,7 +490,9 @@ export default function MedicamentosPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Código Interno <span className="text-red-400">*</span></Label>
+              <Label className="text-xs">
+                Código Interno <span className="text-red-400">*</span>
+              </Label>
               <Input
                 value={form.codigoInterno}
                 onChange={(e) => setForm((f) => ({ ...f, codigoInterno: e.target.value }))}
@@ -343,7 +502,9 @@ export default function MedicamentosPage() {
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label className="text-xs">Nome do Medicamento <span className="text-red-400">*</span></Label>
+              <Label className="text-xs">
+                Nome do Medicamento <span className="text-red-400">*</span>
+              </Label>
               <Input
                 value={form.nome}
                 onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
@@ -352,7 +513,7 @@ export default function MedicamentosPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Apresentação <span className="text-red-400">*</span></Label>
+              <Label className="text-xs">Apresentação <span className="text-gray-400 font-normal">(opcional)</span></Label>
               <Input
                 value={form.apresentacao}
                 onChange={(e) => setForm((f) => ({ ...f, apresentacao: e.target.value }))}
@@ -361,12 +522,36 @@ export default function MedicamentosPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Laboratório <span className="text-red-400">*</span></Label>
+              <Label className="text-xs">Laboratório <span className="text-gray-400 font-normal">(opcional)</span></Label>
               <Input
                 value={form.laboratorio}
                 onChange={(e) => setForm((f) => ({ ...f, laboratorio: e.target.value }))}
                 placeholder="Ex: EMS"
                 data-testid="input-laboratorio"
+              />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs">Descrição <span className="text-gray-400 font-normal">(opcional)</span></Label>
+              <Textarea
+                value={form.descricao}
+                onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
+                placeholder="Observações, indicações ou informações adicionais..."
+                rows={2}
+                className="resize-none text-sm"
+                data-testid="input-descricao"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <PackageOpen className="w-3.5 h-3.5 text-[#00995D]" />
+                Qtd. em Estoque <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.estoque}
+                onChange={(e) => setForm((f) => ({ ...f, estoque: Math.max(0, Number(e.target.value)) }))}
+                data-testid="input-estoque"
               />
             </div>
           </div>

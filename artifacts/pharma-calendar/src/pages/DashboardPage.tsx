@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useListEvents } from "@workspace/api-client-react";
+import { useListEvents, useListMedications } from "@workspace/api-client-react";
 import { useAppContext } from "@/lib/app-context";
 import { getBrazilianHolidays } from "@/lib/holidays";
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/calendar-utils";
@@ -23,6 +23,8 @@ import {
   Plus,
   MessageSquare,
   Bell,
+  PackageOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { format, differenceInDays, parseISO, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -57,10 +59,17 @@ function timeAgo(isoDate: string): string {
 export default function DashboardPage() {
   const { data: events } = useListEvents();
   const { recados, addRecado, removeRecado, togglePinRecado } = useAppContext();
+  const { data: allMedications = [] } = useListMedications({});
 
   const [isAddingRecado, setIsAddingRecado] = useState(false);
   const [newAuthor, setNewAuthor] = useState("");
   const [newContent, setNewContent] = useState("");
+
+  const lowStockMeds = useMemo(() => {
+    return allMedications
+      .filter((m) => m.ativo && m.estoque < 10)
+      .sort((a, b) => a.estoque - b.estoque);
+  }, [allMedications]);
 
   const upcomingEvents = useMemo(() => {
     const today = new Date();
@@ -230,6 +239,71 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Stock alerts */}
+      {lowStockMeds.length > 0 && (
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-base font-semibold text-gray-900 leading-tight">Alertas de Estoque</h2>
+              <p className="text-xs text-gray-400">Medicamentos com quantidade baixa</p>
+            </div>
+            <Badge className="bg-yellow-50 text-yellow-700 border border-yellow-200">
+              {lowStockMeds.length} item{lowStockMeds.length !== 1 ? "s" : ""}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {lowStockMeds.map((med) => {
+              const isCritical = med.estoque < 5;
+              return (
+                <Card
+                  key={med.id}
+                  className={`shadow-none ${
+                    isCritical
+                      ? "border-red-200 bg-red-50/40"
+                      : "border-yellow-200 bg-yellow-50/40"
+                  }`}
+                >
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${
+                          isCritical ? "bg-red-100" : "bg-yellow-100"
+                        }`}
+                      >
+                        <PackageOpen className={`w-4 h-4 ${isCritical ? "text-red-500" : "text-yellow-600"}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold truncate ${isCritical ? "text-red-800" : "text-yellow-900"}`}>
+                          {med.nome}
+                        </p>
+                        {med.apresentacao && (
+                          <p className={`text-xs truncate ${isCritical ? "text-red-400" : "text-yellow-600"}`}>
+                            {med.apresentacao}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 font-bold text-sm px-2.5 ${
+                        isCritical
+                          ? "bg-red-100 text-red-700 border-red-200"
+                          : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                      }`}
+                    >
+                      {med.estoque === 0 ? "Sem estoque" : `${med.estoque} un.`}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Recados */}
       <section>
