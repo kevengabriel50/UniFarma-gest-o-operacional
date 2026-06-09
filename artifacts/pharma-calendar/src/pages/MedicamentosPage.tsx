@@ -91,32 +91,102 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
   }, [med.codigoBarras]);
 
   const handlePrint = useCallback(() => {
+    // ── Etiqueta Zebra GC420t: 76.2mm × 50.8mm a 203dpi ──────────────────────
+    // Renderiza tudo num Canvas com dimensões em pixels exatos da etiqueta,
+    // converte para PNG e imprime como imagem com dimensões físicas em mm.
+    // Isso elimina qualquer variação de escala do browser.
+    const DPI = 203; // DPI nativa da Zebra GC420t
+    const MM_TO_IN = 1 / 25.4;
+    const W = Math.round(76.2 * MM_TO_IN * DPI);  // ≈ 609px
+    const H = Math.round(50.8 * MM_TO_IN * DPI);  // ≈ 406px
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Fundo branco
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
     const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
 
-    // Zebra GC420t: 76.2mm × 50.8mm, sem área não imprimível
-    // Barras finas e curtas para caber em uma etiqueta (como na etiqueta real)
-    const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    // ── Nome do medicamento ───────────────────────────────────────────────────
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    const nameFontSize = 26;
+    ctx.font = `bold ${nameFontSize}px Arial`;
+    // Quebra de linha se muito longo
+    const maxTextWidth = W - 24;
+    const words = labelLine.split(" ");
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (ctx.measureText(test).width > maxTextWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+
+    const lineH = nameFontSize * 1.2;
+    const nameBlockH = lines.length * lineH;
+    const nameY = 18;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, W / 2, nameY + (i + 1) * lineH);
+    });
+
+    // ── Código de barras CODE128 ──────────────────────────────────────────────
+    const barcodeCanvas = document.createElement("canvas");
+    const barcodeH = 130; // altura das barras em px (≈ 16mm)
     try {
-      JsBarcode(tempSvg, med.codigoBarras, {
+      JsBarcode(barcodeCanvas, med.codigoBarras, {
         format: "CODE128",
-        width: 1.8,   // barras finas
-        height: 40,   // barras curtas — adequado para etiqueta pequena
+        width: 2,
+        height: barcodeH,
         displayValue: false,
         margin: 0,
         background: "#ffffff",
         lineColor: "#000000",
       });
     } catch {
-      // se falhar, usa SVG vazio
+      // sem barcode se código inválido
     }
 
-    // Remove atributos width/height explícitos do SVG para o CSS controlar o tamanho
-    tempSvg.removeAttribute("width");
-    tempSvg.removeAttribute("height");
-    const barcodeSvgHtml = tempSvg.outerHTML;
+    const barcodeY = nameY + nameBlockH + lineH;
+    const barcodeDrawW = W - 24; // ocupa quase toda a largura
+    const barcodeDrawH = barcodeCanvas.height > 0
+      ? Math.round((barcodeCanvas.height / barcodeCanvas.width) * barcodeDrawW)
+      : barcodeH;
+    const barcodeX = Math.round((W - barcodeDrawW) / 2);
+    if (barcodeCanvas.width > 0) {
+      ctx.drawImage(barcodeCanvas, barcodeX, barcodeY, barcodeDrawW, barcodeDrawH);
+    }
 
-    // Janela de pré-impressão — tamanho próximo da etiqueta real
-    const win = window.open("", "_blank", "width=290,height=200");
+    // ── Número do código ──────────────────────────────────────────────────────
+    const codeFontSize = 18;
+    ctx.font = `${codeFontSize}px 'Courier New', Courier, monospace`;
+    ctx.fillStyle = "#000000";
+    ctx.letterSpacing = "2px";
+    const codeY = barcodeY + barcodeDrawH + codeFontSize + 4;
+    ctx.fillText(med.codigoBarras, W / 2, codeY);
+
+    // ── Código interno (opcional) ─────────────────────────────────────────────
+    if (med.codigoInterno) {
+      const intFontSize = 15;
+      ctx.font = `${intFontSize}px Arial`;
+      ctx.fillStyle = "#444444";
+      ctx.fillText(med.codigoInterno, W / 2, codeY + intFontSize + 6);
+    }
+
+    const dataUrl = canvas.toDataURL("image/png");
+
+    // ── Janela de impressão ───────────────────────────────────────────────────
+    const win = window.open("", "_blank", "width=340,height=240");
     if (!win) return;
 
     win.document.write(`<!DOCTYPE html>
@@ -125,74 +195,37 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
   <meta charset="utf-8">
   <title>Etiqueta</title>
   <style>
-    @page {
-      size: 76.2mm 50.8mm;
-      margin: 0;
-    }
+    @page { size: 76.2mm 50.8mm; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
+    html, body { background: #fff; }
+    .img-wrap {
       width: 76.2mm;
       height: 50.8mm;
       overflow: hidden;
-      background: #fff;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    .label {
-      width: 76.2mm;
-      height: 50.8mm;
-      padding: 2.5mm 2mm 2mm 2mm;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .label-name {
-      font-weight: bold;
-      font-size: 9pt;
-      text-transform: uppercase;
-      text-align: center;
-      line-height: 1.15;
-      letter-spacing: 0.02em;
-      color: #000;
-      word-break: break-word;
-      max-height: 13mm;
-      overflow: hidden;
-    }
-    .label-barcode {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-    }
-    .label-barcode svg {
-      width: 70mm;
-      height: 14mm;
       display: block;
     }
-    .label-code {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 7.5pt;
-      letter-spacing: 0.1em;
-      color: #000;
+    img {
+      width: 76.2mm;
+      height: 50.8mm;
+      display: block;
+      image-rendering: crisp-edges;
+    }
+    .tip {
+      margin-top: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      color: #888;
       text-align: center;
+      padding: 0 8px;
     }
-    .label-internal {
-      font-size: 6.5pt;
-      color: #333;
-      text-align: center;
-    }
-    @media print {
-      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    }
+    @media print { .tip { display: none; } }
   </style>
 </head>
 <body>
-  <div class="label">
-    <div class="label-name">${labelLine}</div>
-    <div class="label-barcode">${barcodeSvgHtml}</div>
-    <div class="label-code">${med.codigoBarras}</div>
-    ${med.codigoInterno ? `<div class="label-internal">${med.codigoInterno}</div>` : ""}
+  <div class="img-wrap">
+    <img src="${dataUrl}" alt="Etiqueta" />
   </div>
+  <p class="tip">No diálogo de impressão, selecione o papel: ZDesigner GC420t — 7,62 x 5,08 cm</p>
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }<\/script>
 </body>
 </html>`);
