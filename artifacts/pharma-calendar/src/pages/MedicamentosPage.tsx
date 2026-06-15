@@ -194,8 +194,8 @@ function buildLabelHtml(params: {
   <script>
     window.onload = function() {
       ${testMode
-        ? "/* Modo de teste — pressione Ctrl+P ou Cmd+P para imprimir */"
-        : "setTimeout(function() { window.print(); }, 400);"}
+        ? "/* Modo de teste — use Ctrl+P para imprimir manualmente */"
+        : "setTimeout(function() { window.print(); }, 800);"}
     };
   <\/script>
 </body>
@@ -208,10 +208,10 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
   const [wMm, setWMm] = useState(LABEL_DEFAULT_W);
   const [hMm, setHMm] = useState(LABEL_DEFAULT_H);
   const [testMode, setTestMode] = useState(false);
+  const [showDriverGuide, setShowDriverGuide] = useState(false);
 
   const labelLine = [med.nome, med.apresentacao].filter(Boolean).join(" ").toUpperCase();
 
-  // Render barcode SVG preview inside modal
   useEffect(() => {
     if (svgRef.current && med.codigoBarras) {
       try {
@@ -239,15 +239,18 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
       hMm,
       testMode,
     });
-    const win = window.open("", "_blank", `width=${Math.round(wMm * 4)},height=${Math.round(hMm * 4 + 60)}`);
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
+    // Use Blob URL so the browser loads the page properly before printing,
+    // giving the @page CSS rule time to be fully processed.
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank", "width=520,height=400");
+    // Revoke after the window has had time to load the URL
+    if (win) setTimeout(() => URL.revokeObjectURL(url), 5000);
   }, [med, labelLine, wMm, hMm, testMode]);
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-[#00995D]" />
@@ -255,7 +258,7 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
           </DialogTitle>
         </DialogHeader>
 
-        {/* Prévia visual da etiqueta */}
+        {/* Prévia visual */}
         <div className="flex flex-col items-center gap-2 py-3 px-2 bg-white border border-gray-200 rounded-xl">
           <p className="font-bold text-xs leading-tight uppercase tracking-wide text-gray-900 text-center max-w-[230px]">
             {labelLine}
@@ -272,7 +275,7 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
           <p className="text-xs font-medium text-gray-600">Dimensões da etiqueta (mm)</p>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 flex-1">
-              <Label className="text-[11px] text-gray-500 w-10 shrink-0">Largura</Label>
+              <Label className="text-[11px] text-gray-500 w-10 shrink-0">Larg.</Label>
               <Input
                 type="number"
                 value={wMm}
@@ -285,7 +288,7 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
             </div>
             <span className="text-xs text-gray-400">×</span>
             <div className="flex items-center gap-1.5 flex-1">
-              <Label className="text-[11px] text-gray-500 w-10 shrink-0">Altura</Label>
+              <Label className="text-[11px] text-gray-500 w-10 shrink-0">Alt.</Label>
               <Input
                 type="number"
                 value={hMm}
@@ -305,11 +308,11 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
           </div>
         </div>
 
-        {/* Toggle modo de teste */}
+        {/* Modo de teste */}
         <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
           <div>
             <p className="text-xs font-medium text-gray-700">Modo de teste</p>
-            <p className="text-[11px] text-gray-400 leading-tight">Borda visível + dimensões · sem auto-imprimir</p>
+            <p className="text-[11px] text-gray-400 leading-tight">Borda visível · sem auto-imprimir</p>
           </div>
           <button
             onClick={() => setTestMode((v) => !v)}
@@ -317,22 +320,52 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
               testMode ? "bg-[#00995D]" : "bg-gray-200"
             }`}
           >
-            <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
-                testMode ? "translate-x-4" : "translate-x-0.5"
-              }`}
-            />
+            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${testMode ? "translate-x-4" : "translate-x-0.5"}`} />
           </button>
+        </div>
+
+        {/* Configuração do driver Windows — guia colapsável */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50">
+          <button
+            onClick={() => setShowDriverGuide((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 text-left"
+          >
+            <div>
+              <p className="text-xs font-semibold text-amber-800">Configuracao unica no Windows (obrigatoria)</p>
+              <p className="text-[11px] text-amber-600 leading-tight">
+                Sem isso, o Chrome nao sabe o tamanho da etiqueta
+              </p>
+            </div>
+            <span className="text-amber-600 text-xs ml-2">{showDriverGuide ? "▲" : "▼"}</span>
+          </button>
+          {showDriverGuide && (
+            <div className="px-3 pb-3 space-y-1 border-t border-amber-200 pt-2">
+              <p className="text-[11px] text-amber-800 font-medium">No Windows, faça isso uma vez:</p>
+              <ol className="text-[11px] text-amber-700 space-y-1 list-decimal list-inside leading-relaxed">
+                <li>Abra <span className="font-medium">Painel de Controle → Dispositivos e Impressoras</span></li>
+                <li>Clique com botão direito em <span className="font-medium">ZDesigner GC420t (EPL)</span></li>
+                <li>Selecione <span className="font-medium">Preferências de Impressão</span></li>
+                <li>Na aba de papel, defina o tamanho: <span className="font-medium">{wMm} × {hMm} mm</span></li>
+                <li>Clique em <span className="font-medium">OK</span> e feche</li>
+              </ol>
+              <p className="text-[11px] text-amber-600 mt-1">
+                Depois disso, o Chrome reconhece automaticamente o tamanho correto.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Instruções do diálogo de impressão */}
         <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 space-y-0.5">
-          <p className="text-[11px] font-medium text-gray-600 mb-1">No diálogo de impressão:</p>
+          <p className="text-[11px] font-medium text-gray-600 mb-1">No diálogo de impressão do Chrome:</p>
           <p className="text-[11px] text-gray-500">• Impressora: <span className="text-gray-700 font-medium">ZDesigner GC420t (EPL)</span></p>
-          <p className="text-[11px] text-gray-500">• Papel: <span className="text-gray-700 font-medium">User defined — {wMm} × {hMm} mm</span></p>
-          <p className="text-[11px] text-gray-500">• Margens: <span className="text-gray-700 font-medium">Nenhuma</span></p>
+          <p className="text-[11px] text-gray-500">• Tamanho do papel: <span className="text-gray-700 font-medium">{wMm} × {hMm} mm</span> <span className="text-red-500">(campo vazio = problema)</span></p>
+          <p className="text-[11px] text-gray-500">• Margens: <span className="text-gray-700 font-medium">Nenhuma</span> <span className="text-gray-400">(não Padrão)</span></p>
           <p className="text-[11px] text-gray-500">• Escala: <span className="text-gray-700 font-medium">100%</span></p>
-          <p className="text-[11px] text-gray-500">• Cabeçalho/Rodapé: <span className="text-gray-700 font-medium">Desmarcar</span></p>
+          <p className="text-[11px] text-gray-500">• Cabecalho/Rodape: <span className="text-gray-700 font-medium">Desmarcar</span></p>
+          <p className="text-[11px] text-gray-400 border-t border-gray-100 mt-1 pt-1">
+            Alternativa: use <span className="font-medium text-gray-600">Ctrl+Shift+P</span> no popup para abrir o diálogo nativo do Windows
+          </p>
         </div>
 
         <DialogFooter className="gap-2">
