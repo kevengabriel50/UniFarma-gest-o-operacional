@@ -37,6 +37,7 @@ import {
   Printer,
   X,
   PackageOpen,
+  Download,
 } from "lucide-react";
 
 type MedFormData = {
@@ -72,6 +73,57 @@ function stockBadge(estoque: number) {
 const LABEL_DEFAULT_W = 76.2;
 const LABEL_DEFAULT_H = 50.8;
 const LABEL_PAD = 2.5; // mm internal padding
+const ZEBRA_DPI = 203;  // GC420t native resolution
+
+/**
+ * Generate a ZPL (Zebra Programming Language) string for the label.
+ * This bypasses the browser print dialog entirely — send the file directly
+ * to the printer via: copy /b etiqueta.zpl "\\localhost\ZDesigner GC420t (EPL)"
+ */
+function generateZpl({ name, code, internalCode, wMm, hMm }: {
+  name: string;
+  code: string;
+  internalCode?: string;
+  wMm: number;
+  hMm: number;
+}): string {
+  const dpm = ZEBRA_DPI / 25.4;               // dots per mm ≈ 8
+  const pw  = Math.round(wMm * dpm);           // print width in dots
+  const ll  = Math.round(hMm * dpm);           // label length in dots
+  const pad = Math.round(LABEL_PAD * dpm);     // horizontal padding
+  const usableW = pw - pad * 2;
+  const bcH = Math.round(ll * 0.42);           // barcode height ~42% of label
+
+  const nameY = Math.round(ll * 0.04);
+  const bcY   = Math.round(ll * 0.22);
+  const codeY = Math.round(ll * 0.72);
+  const intY  = Math.round(ll * 0.86);
+
+  let zpl = `^XA\n^CI28\n^PW${pw}\n^LL${ll}\n^LH0,0\n`;
+  // Name — centered, 2 lines max, bold font D
+  zpl += `^FO${pad},${nameY}^ADN,28,14^FB${usableW},2,0,C^FD${name}^FS\n`;
+  // Code128 barcode (I = auto subset)
+  zpl += `^FO${pad},${bcY}^BCI,${bcH},N,N^FD${code}^FS\n`;
+  // Human-readable barcode number
+  zpl += `^FO${pad},${codeY}^ADN,18,10^FB${usableW},1,0,C^FD${code}^FS\n`;
+  // Internal code (optional)
+  if (internalCode) {
+    zpl += `^FO${pad},${intY}^ADN,15,8^FB${usableW},1,0,C^FD${internalCode}^FS\n`;
+  }
+  zpl += `^XZ`;
+  return zpl;
+}
+
+/** Download a ZPL string as a .zpl file. */
+function downloadZpl(zpl: string, filename: string) {
+  const blob = new Blob([zpl], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
 
 /** Render CODE128 barcode to a PNG data-URL using JsBarcode + canvas. */
 function generateBarcodePng(code: string): string | null {
@@ -228,6 +280,18 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
     }
   }, [med.codigoBarras]);
 
+  const handleDownloadZpl = useCallback(() => {
+    const zpl = generateZpl({
+      name: labelLine,
+      code: med.codigoBarras,
+      internalCode: med.codigoInterno ?? undefined,
+      wMm,
+      hMm,
+    });
+    const filename = `etiqueta-${med.codigoInterno ?? med.codigoBarras}.zpl`;
+    downloadZpl(zpl, filename);
+  }, [med, labelLine, wMm, hMm]);
+
   const openPrintWindow = useCallback(() => {
     const barcodePng = generateBarcodePng(med.codigoBarras);
     const html = buildLabelHtml({
@@ -324,53 +388,74 @@ function LabelPrintModal({ med, onClose }: { med: Medication; onClose: () => voi
           </button>
         </div>
 
-        {/* Configuração do driver Windows — guia colapsável */}
-        <div className="rounded-lg border border-amber-200 bg-amber-50">
+        {/* Guia ZPL — método mais confiável */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50">
           <button
             onClick={() => setShowDriverGuide((v) => !v)}
             className="w-full flex items-center justify-between px-3 py-2 text-left"
           >
             <div>
-              <p className="text-xs font-semibold text-amber-800">Configuracao unica no Windows (obrigatoria)</p>
-              <p className="text-[11px] text-amber-600 leading-tight">
-                Sem isso, o Chrome nao sabe o tamanho da etiqueta
+              <p className="text-xs font-semibold text-blue-800">Metodo alternativo: arquivo ZPL (mais confiavel)</p>
+              <p className="text-[11px] text-blue-600 leading-tight">
+                Envia direto para a impressora, sem diálogo do Chrome
               </p>
             </div>
-            <span className="text-amber-600 text-xs ml-2">{showDriverGuide ? "▲" : "▼"}</span>
+            <span className="text-blue-600 text-xs ml-2">{showDriverGuide ? "▲" : "▼"}</span>
           </button>
           {showDriverGuide && (
-            <div className="px-3 pb-3 space-y-1 border-t border-amber-200 pt-2">
-              <p className="text-[11px] text-amber-800 font-medium">No Windows, faça isso uma vez:</p>
-              <ol className="text-[11px] text-amber-700 space-y-1 list-decimal list-inside leading-relaxed">
-                <li>Abra <span className="font-medium">Painel de Controle → Dispositivos e Impressoras</span></li>
-                <li>Clique com botão direito em <span className="font-medium">ZDesigner GC420t (EPL)</span></li>
-                <li>Selecione <span className="font-medium">Preferências de Impressão</span></li>
-                <li>Na aba de papel, defina o tamanho: <span className="font-medium">{wMm} × {hMm} mm</span></li>
-                <li>Clique em <span className="font-medium">OK</span> e feche</li>
+            <div className="px-3 pb-3 space-y-1.5 border-t border-blue-200 pt-2">
+              <p className="text-[11px] text-blue-900 font-medium">Como usar o arquivo ZPL:</p>
+              <ol className="text-[11px] text-blue-800 space-y-1 list-decimal list-inside leading-relaxed">
+                <li>Clique em <span className="font-medium">Baixar ZPL</span> abaixo</li>
+                <li>Abra o <span className="font-medium">Prompt de Comando</span> (Win+R → cmd)</li>
+                <li>
+                  Digite o comando:{" "}
+                  <code className="bg-blue-100 px-1 rounded text-[10px] font-mono break-all">
+                    copy /b etiqueta.zpl "\\localhost\ZDesigner GC420t (EPL)"
+                  </code>
+                </li>
+                <li>Pressione Enter — a etiqueta sai diretamente</li>
               </ol>
-              <p className="text-[11px] text-amber-600 mt-1">
-                Depois disso, o Chrome reconhece automaticamente o tamanho correto.
+              <p className="text-[11px] text-blue-600 mt-1">
+                O nome da impressora no comando deve ser exatamente igual ao que aparece em Dispositivos e Impressoras.
               </p>
             </div>
           )}
         </div>
 
-        {/* Instruções do diálogo de impressão */}
+        {/* Instruções do diálogo de impressão do Chrome */}
         <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 space-y-0.5">
-          <p className="text-[11px] font-medium text-gray-600 mb-1">No diálogo de impressão do Chrome:</p>
-          <p className="text-[11px] text-gray-500">• Impressora: <span className="text-gray-700 font-medium">ZDesigner GC420t (EPL)</span></p>
-          <p className="text-[11px] text-gray-500">• Tamanho do papel: <span className="text-gray-700 font-medium">{wMm} × {hMm} mm</span> <span className="text-red-500">(campo vazio = problema)</span></p>
-          <p className="text-[11px] text-gray-500">• Margens: <span className="text-gray-700 font-medium">Nenhuma</span> <span className="text-gray-400">(não Padrão)</span></p>
-          <p className="text-[11px] text-gray-500">• Escala: <span className="text-gray-700 font-medium">100%</span></p>
-          <p className="text-[11px] text-gray-500">• Cabecalho/Rodape: <span className="text-gray-700 font-medium">Desmarcar</span></p>
-          <p className="text-[11px] text-gray-400 border-t border-gray-100 mt-1 pt-1">
-            Alternativa: use <span className="font-medium text-gray-600">Ctrl+Shift+P</span> no popup para abrir o diálogo nativo do Windows
+          <p className="text-[11px] font-medium text-gray-600 mb-1">Se preferir usar o diálogo do Chrome:</p>
+          <p className="text-[11px] text-gray-500">
+            O campo <span className="font-medium text-gray-700">Tamanho do papel</span> precisa estar preenchido com{" "}
+            <span className="font-medium text-gray-700">{wMm} × {hMm} mm</span>.
+          </p>
+          <p className="text-[11px] text-gray-500">
+            Para isso funcionar, crie um formulário personalizado no Windows:
+          </p>
+          <ol className="text-[11px] text-gray-600 list-decimal list-inside space-y-0.5 leading-relaxed mt-1">
+            <li>Em Dispositivos e Impressoras, pressione <span className="font-medium">Alt → Arquivo → Prop. do Servidor</span></li>
+            <li>Aba <span className="font-medium">Formulários</span> → marque <span className="font-medium">Criar novo formulário</span></li>
+            <li>Nome: <span className="font-medium">Etiqueta Zebra</span> · Larg: <span className="font-medium">{wMm}mm</span> · Alt: <span className="font-medium">{hMm}mm</span></li>
+            <li>Clique em <span className="font-medium">Salvar formulário</span></li>
+          </ol>
+          <p className="text-[11px] text-gray-400 mt-1">
+            Depois reinicie o Chrome e selecione <span className="font-medium text-gray-600">Etiqueta Zebra</span> no campo Tamanho do papel.
           </p>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>
+        <DialogFooter className="flex-wrap gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose} className="mr-auto">
             <X className="w-3.5 h-3.5 mr-1" /> Fechar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadZpl}
+            className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Baixar ZPL
           </Button>
           <Button
             size="sm"
