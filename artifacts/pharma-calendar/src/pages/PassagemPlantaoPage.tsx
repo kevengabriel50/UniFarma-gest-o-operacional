@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useListTasks,
+  useCreateTask,
+  useDeleteTask,
+  useConcluirTask,
+  useCreateRegistroPlantao,
+} from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,36 +27,57 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Plus, AlertCircle, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAppContext, Priority } from "@/lib/app-context";
 
-type Task = { id: string; title: string; priority: Priority; done: boolean };
+type Priority = "Alta" | "Média" | "Baixa";
 type MedicamentoStatus = "Em Falta" | "Baixo Estoque";
 type Medicamento = { id: string; name: string; status: MedicamentoStatus };
+
+const turnoLabel: Record<string, string> = {
+  "manha-7-19": "Manhã (07h às 19h)",
+  "manha-7-13": "Manhã (07h às 13h)",
+  "tarde": "Tarde (13h às 19h)",
+  "noite": "Noite (19h às 07h)",
+};
 
 export default function PassagemPlantaoPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { addCompletedTask, addPlantaoRecord } = useAppContext();
+  const queryClient = useQueryClient();
 
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", title: "Verificar temperatura da câmara fria", priority: "Alta", done: false },
-    { id: "2", title: "Registrar saída de NPT do paciente 312", priority: "Média", done: false },
-    { id: "3", title: "Confirmar recebimento de hemoderivados", priority: "Baixa", done: false },
-  ]);
+  const TASKS_KEY = ["/api/tasks"];
 
-  const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
+  const { data: allTasks = [], isLoading: isLoadingTasks } = useListTasks();
+  const pendingTasks = allTasks.filter((t) => !t.concluida);
+
+  const createTask = useCreateTask({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }) },
+  });
+  const deleteTask = useDeleteTask({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }) },
+  });
+  const concluirTask = useConcluirTask({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }) },
+  });
+  const createRegistro = useCreateRegistroPlantao({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/registros-plantao"] });
+        navigate("/historico");
+      },
+    },
+  });
+
+  const [pendingConfirmId, setPendingConfirmId] = useState<number | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority>("Média");
+  const [isAddingTask, setIsAddingTask] = useState(false);
 
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([
     { id: "1", name: "Dipirona 500mg", status: "Em Falta" },
     { id: "2", name: "SF 0,9% 500ml", status: "Baixo Estoque" },
   ]);
-
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskPriority, setNewTaskPriority] = useState<Priority>("Média");
-  const [isAddingTask, setIsAddingTask] = useState(false);
-
   const [newMedName, setNewMedName] = useState("");
   const [newMedStatus, setNewMedStatus] = useState<MedicamentoStatus>("Baixo Estoque");
 
@@ -59,49 +88,28 @@ export default function PassagemPlantaoPage() {
   const [intercorrencias, setIntercorrencias] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
-  const turnoLabel: Record<string, string> = {
-    "manha-7-19": "Manhã (07h às 19h)",
-    "manha-7-13": "Manhã (07h às 13h)",
-    "tarde": "Tarde (13h às 19h)",
-    "noite": "Noite (19h às 07h)",
-  };
-
-  const handleCheckboxClick = (id: string, currentDone: boolean) => {
-    if (currentDone) return;
-    setPendingConfirmId(id);
-  };
-
   const handleConfirmTask = () => {
     if (!pendingConfirmId) return;
-    const task = tasks.find((t) => t.id === pendingConfirmId);
-    if (task) {
-      addCompletedTask({
-        id: task.id,
-        title: task.title,
-        priority: task.priority,
-        completedAt: new Date().toISOString(),
-      });
-      setTasks((prev) => prev.filter((t) => t.id !== pendingConfirmId));
-      toast({ title: "Tarefa confirmada", description: `"${task.title}" foi concluída e registrada em Tasks.` });
-    }
+    const task = allTasks.find((t) => t.id === pendingConfirmId);
+    concluirTask.mutate(
+      { id: pendingConfirmId },
+      {
+        onSuccess: () => {
+          toast({ title: "Tarefa confirmada", description: `"${task?.titulo}" foi concluída e registrada em Tasks.` });
+        },
+      }
+    );
     setPendingConfirmId(null);
-  };
-
-  const removeTask = (id: string) => {
-    setTasks(tasks.filter((t) => t.id !== id));
   };
 
   const addTask = () => {
     if (!newTaskTitle.trim()) return;
-    setTasks([...tasks, { id: Date.now().toString(), title: newTaskTitle, priority: newTaskPriority, done: false }]);
+    createTask.mutate({ data: { titulo: newTaskTitle.trim(), prioridade: newTaskPriority } });
     setNewTaskTitle("");
     setIsAddingTask(false);
   };
 
-  const removeMed = (id: string) => {
-    setMedicamentos(medicamentos.filter((m) => m.id !== id));
-  };
-
+  const removeMed = (id: string) => setMedicamentos(medicamentos.filter((m) => m.id !== id));
   const addMed = () => {
     if (!newMedName.trim()) return;
     setMedicamentos([...medicamentos, { id: Date.now().toString(), name: newMedName, status: newMedStatus }]);
@@ -109,24 +117,20 @@ export default function PassagemPlantaoPage() {
   };
 
   const handleSavePlantao = () => {
-    addPlantaoRecord({
-      id: Date.now().toString(),
-      farmaceutico,
-      turno: turnoLabel[turno] ?? turno,
-      data,
-      statusLeitos,
-      intercorrencias,
-      observacoes,
-      savedAt: new Date().toISOString(),
+    createRegistro.mutate({
+      data: {
+        farmaceutico,
+        turno: turnoLabel[turno] ?? turno,
+        data,
+        statusLeitos,
+        intercorrencias,
+        observacoes,
+      },
     });
-    toast({
-      title: "Registro salvo",
-      description: "A passagem de plantão foi registrada e enviada ao Histórico.",
-    });
-    navigate("/historico");
+    toast({ title: "Registro salvo", description: "A passagem de plantão foi registrada e enviada ao Histórico." });
   };
 
-  const pendingTask = tasks.find((t) => t.id === pendingConfirmId);
+  const pendingTask = allTasks.find((t) => t.id === pendingConfirmId);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
@@ -136,7 +140,7 @@ export default function PassagemPlantaoPage() {
             <AlertDialogTitle>Confirmar cumprimento de tarefa</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja confirmar a conclusão da tarefa{" "}
-              <span className="font-semibold text-gray-800">"{pendingTask?.title}"</span>?
+              <span className="font-semibold text-gray-800">"{pendingTask?.titulo}"</span>?
               <br />
               Ela será movida para a aba de <strong>Tasks</strong> como concluída.
             </AlertDialogDescription>
@@ -166,32 +170,41 @@ export default function PassagemPlantaoPage() {
             <TabsContent value="tasks" className="m-0 space-y-4">
               <div className="bg-white rounded-xl p-5 shadow-sm space-y-4">
                 <div className="space-y-3">
-                  {tasks.length === 0 ? (
+                  {isLoadingTasks ? (
+                    <div className="flex items-center justify-center py-4 gap-2 text-gray-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Carregando...</span>
+                    </div>
+                  ) : pendingTasks.length === 0 ? (
                     <p className="text-gray-500 text-sm text-center py-4">Nenhuma task pendente neste turno.</p>
                   ) : (
-                    tasks.map((task) => (
+                    pendingTasks.map((task) => (
                       <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border bg-white border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3">
                           <Checkbox
-                            checked={task.done}
-                            onCheckedChange={() => handleCheckboxClick(task.id, task.done)}
+                            checked={false}
+                            onCheckedChange={() => setPendingConfirmId(task.id)}
                             className="data-[state=checked]:bg-[#00995D] data-[state=checked]:border-[#00995D]"
                             data-testid={`checkbox-task-${task.id}`}
                           />
-                          <span className="text-sm font-medium text-gray-700">{task.title}</span>
+                          <span className="text-sm font-medium text-gray-700">{task.titulo}</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge
                             variant="outline"
                             className={`
-                              ${task.priority === "Alta" ? "bg-red-50 text-red-700 border-red-200" : ""}
-                              ${task.priority === "Média" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : ""}
-                              ${task.priority === "Baixa" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
+                              ${task.prioridade === "Alta" ? "bg-red-50 text-red-700 border-red-200" : ""}
+                              ${task.prioridade === "Média" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : ""}
+                              ${task.prioridade === "Baixa" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
                             `}
                           >
-                            {task.priority}
+                            {task.prioridade}
                           </Badge>
-                          <button onClick={() => removeTask(task.id)} className="text-gray-400 hover:text-red-500 transition-colors" data-testid={`button-remove-task-${task.id}`}>
+                          <button
+                            onClick={() => deleteTask.mutate({ id: task.id })}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            data-testid={`button-remove-task-${task.id}`}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -310,9 +323,11 @@ export default function PassagemPlantaoPage() {
                 <div className="pt-2 flex justify-end">
                   <Button
                     onClick={handleSavePlantao}
+                    disabled={createRegistro.isPending}
                     className="bg-[#00995D] hover:bg-[#007A48] text-white px-8"
                     data-testid="button-salvar-plantao"
                   >
+                    {createRegistro.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Salvar Registro
                   </Button>
                 </div>

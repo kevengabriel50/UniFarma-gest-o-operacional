@@ -4,3 +4,5 @@ export * from "./medications";
 export * from "./dom";
 export * from "./contingencia";
 export * from "./usuarios";
+export * from "./plantao";
+export * from "./recados";

@@ -19,6 +19,12 @@ tags:
     description: DOM (Atendimento Domiciliar) operations
   - name: contingencia
     description: Contingência operations
+  - name: tasks
+    description: Tasks do plantão
+  - name: plantao
+    description: Registros de passagem de plantão
+  - name: recados
+    description: Mural de recados / avisos
 paths:
   /auth/login:
     post:
@@ -676,6 +682,184 @@ paths:
         "404":
           description: Not found
 
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskPlantao"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskPlantaoInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskPlantao"
+        "400":
+          description: Bad request
+
+  /tasks/{id}:
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /tasks/{id}/concluir:
+    patch:
+      operationId: concluirTask
+      tags: [tasks]
+      summary: Mark task as done
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskPlantao"
+        "404":
+          description: Not found
+
+  /registros-plantao:
+    get:
+      operationId: listRegistrosPlantao
+      tags: [plantao]
+      summary: List all passagem de plantão records
+      responses:
+        "200":
+          description: List of records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegistroPlantao"
+    post:
+      operationId: createRegistroPlantao
+      tags: [plantao]
+      summary: Save a passagem de plantão record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistroPlantaoInput"
+      responses:
+        "201":
+          description: Created record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistroPlantao"
+        "400":
+          description: Bad request
+
+  /recados:
+    get:
+      operationId: listRecados
+      tags: [recados]
+      summary: List all recados
+      responses:
+        "200":
+          description: List of recados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Recado"
+    post:
+      operationId: createRecado
+      tags: [recados]
+      summary: Create a new recado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecadoInput"
+      responses:
+        "201":
+          description: Created recado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recado"
+        "400":
+          description: Bad request
+
+  /recados/{id}:
+    delete:
+      operationId: deleteRecado
+      tags: [recados]
+      summary: Delete a recado
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /recados/{id}/pin:
+    patch:
+      operationId: togglePinRecado
+      tags: [recados]
+      summary: Toggle pin status of a recado
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated recado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recado"
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -1051,3 +1235,92 @@ components:
         quantidade:
           type: integer
           minimum: 1
+
+    TaskPlantao:
+      type: object
+      required: [id, titulo, prioridade, concluida, createdAt]
+      properties:
+        id:
+          type: integer
+        titulo:
+          type: string
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+        concluida:
+          type: boolean
+        concluidaEm:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    TaskPlantaoInput:
+      type: object
+      required: [titulo]
+      properties:
+        titulo:
+          type: string
+          minLength: 1
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+
+    RegistroPlantao:
+      type: object
+      required: [id, farmaceutico, turno, data, statusLeitos, intercorrencias, observacoes, savedAt]
+      properties:
+        id:
+          type: integer
+        farmaceutico:
+          type: string
+        turno:
+          type: string
+        data:
+          type: string
+        statusLeitos:
+          type: string
+        intercorrencias:
+          type: string
+        observacoes:
+          type: string
+        savedAt:
+          type: string
+    RegistroPlantaoInput:
+      type: object
+      required: [turno, data]
+      properties:
+        farmaceutico:
+          type: string
+        turno:
+          type: string
+        data:
+          type: string
+        statusLeitos:
+          type: string
+        intercorrencias:
+          type: string
+        observacoes:
+          type: string
+
+    Recado:
+      type: object
+      required: [id, author, content, pinned, createdAt]
+      properties:
+        id:
+          type: integer
+        author:
+          type: string
+        content:
+          type: string
+        pinned:
+          type: boolean
+        createdAt:
+          type: string
+    RecadoInput:
+      type: object
+      required: [content]
+      properties:
+        author:
+          type: string
+        content:
+          type: string
+          minLength: 1

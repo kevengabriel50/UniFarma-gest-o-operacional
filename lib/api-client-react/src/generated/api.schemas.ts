@@ -294,6 +294,74 @@ export interface ContingenciaItemInput {
   quantidade: number;
 }
 
+export type TaskPlantaoPrioridade = typeof TaskPlantaoPrioridade[keyof typeof TaskPlantaoPrioridade];
+
+
+export const TaskPlantaoPrioridade = {
+  Alta: 'Alta',
+  Média: 'Média',
+  Baixa: 'Baixa',
+} as const;
+
+export interface TaskPlantao {
+  id: number;
+  titulo: string;
+  prioridade: TaskPlantaoPrioridade;
+  concluida: boolean;
+  /** @nullable */
+  concluidaEm?: string | null;
+  createdAt: string;
+}
+
+export type TaskPlantaoInputPrioridade = typeof TaskPlantaoInputPrioridade[keyof typeof TaskPlantaoInputPrioridade];
+
+
+export const TaskPlantaoInputPrioridade = {
+  Alta: 'Alta',
+  Média: 'Média',
+  Baixa: 'Baixa',
+} as const;
+
+export interface TaskPlantaoInput {
+  /** @minLength 1 */
+  titulo: string;
+  prioridade?: TaskPlantaoInputPrioridade;
+}
+
+export interface RegistroPlantao {
+  id: number;
+  farmaceutico: string;
+  turno: string;
+  data: string;
+  statusLeitos: string;
+  intercorrencias: string;
+  observacoes: string;
+  savedAt: string;
+}
+
+export interface RegistroPlantaoInput {
+  farmaceutico?: string;
+  turno: string;
+  data: string;
+  statusLeitos?: string;
+  intercorrencias?: string;
+  observacoes?: string;
+}
+
+export interface Recado {
+  id: number;
+  author: string;
+  content: string;
+  pinned: boolean;
+  createdAt: string;
+}
+
+export interface RecadoInput {
+  author?: string;
+  /** @minLength 1 */
+  content: string;
+}
+
 export type ListEventsParams = {
 start?: string;
 end?: string;

@@ -629,3 +629,132 @@ export const DeleteContingenciaItemParams = zod.object({
 })
 
 
+/**
+ * @summary List all tasks
+ */
+export const ListTasksResponseItem = zod.object({
+  "id": zod.number(),
+  "titulo": zod.string(),
+  "prioridade": zod.enum(['Alta', 'Média', 'Baixa']),
+  "concluida": zod.boolean(),
+  "concluidaEm": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListTasksResponse = zod.array(ListTasksResponseItem)
+
+
+/**
+ * @summary Create a new task
+ */
+
+
+
+export const CreateTaskBody = zod.object({
+  "titulo": zod.string().min(1),
+  "prioridade": zod.enum(['Alta', 'Média', 'Baixa']).optional()
+})
+
+
+/**
+ * @summary Delete a task
+ */
+export const DeleteTaskParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Mark task as done
+ */
+export const ConcluirTaskParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ConcluirTaskResponse = zod.object({
+  "id": zod.number(),
+  "titulo": zod.string(),
+  "prioridade": zod.enum(['Alta', 'Média', 'Baixa']),
+  "concluida": zod.boolean(),
+  "concluidaEm": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List all passagem de plantão records
+ */
+export const ListRegistrosPlantaoResponseItem = zod.object({
+  "id": zod.number(),
+  "farmaceutico": zod.string(),
+  "turno": zod.string(),
+  "data": zod.string(),
+  "statusLeitos": zod.string(),
+  "intercorrencias": zod.string(),
+  "observacoes": zod.string(),
+  "savedAt": zod.string()
+})
+export const ListRegistrosPlantaoResponse = zod.array(ListRegistrosPlantaoResponseItem)
+
+
+/**
+ * @summary Save a passagem de plantão record
+ */
+export const CreateRegistroPlantaoBody = zod.object({
+  "farmaceutico": zod.string().optional(),
+  "turno": zod.string(),
+  "data": zod.string(),
+  "statusLeitos": zod.string().optional(),
+  "intercorrencias": zod.string().optional(),
+  "observacoes": zod.string().optional()
+})
+
+
+/**
+ * @summary List all recados
+ */
+export const ListRecadosResponseItem = zod.object({
+  "id": zod.number(),
+  "author": zod.string(),
+  "content": zod.string(),
+  "pinned": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ListRecadosResponse = zod.array(ListRecadosResponseItem)
+
+
+/**
+ * @summary Create a new recado
+ */
+
+
+
+export const CreateRecadoBody = zod.object({
+  "author": zod.string().optional(),
+  "content": zod.string().min(1)
+})
+
+
+/**
+ * @summary Delete a recado
+ */
+export const DeleteRecadoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Toggle pin status of a recado
+ */
+export const TogglePinRecadoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const TogglePinRecadoResponse = zod.object({
+  "id": zod.number(),
+  "author": zod.string(),
+  "content": zod.string(),
+  "pinned": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+

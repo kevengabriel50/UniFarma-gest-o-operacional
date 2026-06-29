@@ -1,12 +1,21 @@
-import { useAppContext } from "@/lib/app-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useListRegistrosPlantao } from "@workspace/api-client-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, User, CalendarDays, Clock } from "lucide-react";
+import { History, User, CalendarDays, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function HistoricoPage() {
-  const { plantaoRecords } = useAppContext();
+  const { data: plantaoRecords = [], isLoading } = useListRegistrosPlantao();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center gap-2 text-gray-400">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="text-sm">Carregando...</span>
+      </div>
+    );
+  }
 
   if (plantaoRecords.length === 0) {
     return (

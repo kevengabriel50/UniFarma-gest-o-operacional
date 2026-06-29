@@ -21,6 +21,12 @@ description: Como o sistema de autenticação do UniFarma funciona — sessões,
 - Arquivo: `artifacts/api-server/src/types/session.d.ts`
 - Augmenta `express-session` SessionData com `user?: { id, nome, usuario }`
 
+## Persistência de dados operacionais
+- Tasks, registros de plantão e recados foram migrados de React state (app-context) para o banco
+- Tabelas: `tasks_plantao`, `registros_plantao`, `recados`
+- app-context.tsx virou um wrapper vazio (não remover — App.tsx ainda importa AppProvider)
+- Codegen Orval gera hooks: useListTasks, useConcluirTask, useDeleteTask, useCreateTask, useListRegistrosPlantao, useCreateRegistroPlantao, useListRecados, useCreateRecado, useDeleteRecado, useTogglePinRecado
+
 ## usuarioNome nos atendimentos
 - Colunas `usuario_nome` adicionadas em `dom_atendimentos` e `contingencia_atendimentos` (nullable)
 - Server injeta automaticamente do `req.session?.user?.nome` no POST de criação

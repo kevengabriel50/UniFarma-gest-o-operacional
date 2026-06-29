@@ -221,6 +221,7 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
   const [step, setStep] = useState<Step>("list");
   const [currentAtendimentoId, setCurrentAtendimentoId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [printAtendimentoId, setPrintAtendimentoId] = useState<number | null>(null);
 
   const [cadastroForm, setCadastroForm] = useState<CadastroForm>({
     nomePaciente: "",
@@ -243,6 +244,22 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
       queryKey: hooks.detailQueryKey(currentAtendimentoId ?? 0),
     },
   });
+
+  const { data: printDetail } = hooks.useGetAtendimento(printAtendimentoId ?? 0, {
+    query: {
+      enabled: !!printAtendimentoId && step === "list",
+      queryKey: hooks.detailQueryKey(printAtendimentoId ?? 0),
+    },
+  });
+
+  useEffect(() => {
+    if (!printDetail || !printAtendimentoId || printDetail.id !== printAtendimentoId) return;
+    const timer = setTimeout(() => {
+      window.print();
+      setPrintAtendimentoId(null);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [printDetail, printAtendimentoId]);
 
   useEffect(() => {
     if (atendimentoDetail && step === "editar_cadastro") {
@@ -434,6 +451,9 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
   if (step === "list") {
     return (
       <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+        {printAtendimentoId && printDetail && (
+          <PrintView moduleLabel={moduleLabel} atendimento={printDetail} itens={(printDetail as ModuleAtendimentoDetail).itens ?? []} />
+        )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -510,16 +530,34 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
                         </p>
                       )}
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        a.status === "finalizado"
-                          ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                          : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                      }
-                    >
-                      {a.status === "finalizado" ? "Finalizado" : "Em andamento"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {a.status === "finalizado" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrintAtendimentoId(a.id);
+                          }}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-[#00995D] hover:bg-[#e6f7f0] transition-colors"
+                          title="Imprimir / Exportar PDF"
+                        >
+                          {printAtendimentoId === a.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Printer className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={
+                          a.status === "finalizado"
+                            ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                            : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                        }
+                      >
+                        {a.status === "finalizado" ? "Finalizado" : "Em andamento"}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>

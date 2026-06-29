@@ -5,6 +5,9 @@ import medicationsRouter from "./medications";
 import domRouter from "./dom";
 import contingenciaRouter from "./contingencia";
 import authRouter from "./auth";
+import tasksRouter from "./tasks";
+import plantaoRouter from "./plantao";
+import recadosRouter from "./recados";
 
 const router: IRouter = Router();
 
@@ -14,5 +17,8 @@ router.use(eventsRouter);
 router.use(medicationsRouter);
 router.use(domRouter);
 router.use(contingenciaRouter);
+router.use(tasksRouter);
+router.use(plantaoRouter);
+router.use(recadosRouter);
 
 export default router;

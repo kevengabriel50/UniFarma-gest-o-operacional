@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { useListEvents, useListMedications } from "@workspace/api-client-react";
-import { useAppContext } from "@/lib/app-context";
+import { useListEvents, useListMedications, useListRecados, useCreateRecado, useDeleteRecado, useTogglePinRecado } from "@workspace/api-client-react";
 import { getBrazilianHolidays } from "@/lib/holidays";
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/calendar-utils";
 import type { CalendarEventCategory } from "@workspace/api-client-react";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Umbrella,
   Coffee,
@@ -26,7 +26,7 @@ import {
   PackageOpen,
   AlertTriangle,
 } from "lucide-react";
-import { format, differenceInDays, parseISO, isToday, isTomorrow } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const CATEGORY_ICONS: Record<CalendarEventCategory, typeof Umbrella> = {
@@ -57,9 +57,26 @@ function timeAgo(isoDate: string): string {
 }
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
   const { data: events } = useListEvents();
-  const { recados, addRecado, removeRecado, togglePinRecado } = useAppContext();
   const { data: allMedications = [] } = useListMedications({});
+  const { data: recados = [] } = useListRecados();
+
+  const createRecado = useCreateRecado({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/recados"] }),
+    },
+  });
+  const deleteRecado = useDeleteRecado({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/recados"] }),
+    },
+  });
+  const togglePin = useTogglePinRecado({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/recados"] }),
+    },
+  });
 
   const [isAddingRecado, setIsAddingRecado] = useState(false);
   const [newAuthor, setNewAuthor] = useState("");
@@ -117,12 +134,11 @@ export default function DashboardPage() {
 
   const handleAddRecado = () => {
     if (!newContent.trim()) return;
-    addRecado({
-      id: Date.now().toString(),
-      author: newAuthor.trim() || "Anônimo",
-      content: newContent.trim(),
-      createdAt: new Date().toISOString(),
-      pinned: false,
+    createRecado.mutate({
+      data: {
+        author: newAuthor.trim() || "Anônimo",
+        content: newContent.trim(),
+      },
     });
     setNewAuthor("");
     setNewContent("");
@@ -161,7 +177,6 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <div className="relative">
-            {/* timeline line */}
             <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gray-200" />
             <div className="space-y-3">
               {upcomingEvents.map((item) => {
@@ -366,7 +381,7 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   onClick={handleAddRecado}
-                  disabled={!newContent.trim()}
+                  disabled={!newContent.trim() || createRecado.isPending}
                   className="bg-[#00995D] hover:bg-[#007A48] text-white"
                   data-testid="button-submit-recado"
                 >
@@ -425,7 +440,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0 mt-0.5">
                       <button
-                        onClick={() => togglePinRecado(recado.id)}
+                        onClick={() => togglePin.mutate({ id: recado.id })}
                         className={`p-1.5 rounded-md transition-colors ${
                           recado.pinned
                             ? "text-[#00995D] hover:bg-[#e6f7f0]"
@@ -437,7 +452,7 @@ export default function DashboardPage() {
                         {recado.pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
                       </button>
                       <button
-                        onClick={() => removeRecado(recado.id)}
+                        onClick={() => deleteRecado.mutate({ id: recado.id })}
                         className="p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                         title="Excluir recado"
                         data-testid={`button-remove-recado-${recado.id}`}
