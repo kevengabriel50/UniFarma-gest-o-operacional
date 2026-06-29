@@ -1,41 +1,47 @@
 import { Router } from "express";
-import { db, domAtendimentosTable, domItensTable, insertDomAtendimentoSchema, insertDomItemSchema } from "@workspace/db";
+import {
+  db,
+  contingenciaAtendimentosTable,
+  contingenciaItensTable,
+  insertContingenciaAtendimentoSchema,
+  insertContingenciaItemSchema,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
 
 // ── Atendimentos ─────────────────────────────────────────────────────────────
 
-router.get("/dom/atendimentos", async (req, res) => {
+router.get("/contingencia/atendimentos", async (req, res) => {
   try {
     const rows = await db
       .select()
-      .from(domAtendimentosTable)
-      .orderBy(domAtendimentosTable.createdAt);
+      .from(contingenciaAtendimentosTable)
+      .orderBy(contingenciaAtendimentosTable.createdAt);
 
     res.json(rows.map(serializeAtendimento).reverse());
   } catch (err) {
-    req.log.error({ err }, "Failed to list DOM atendimentos");
+    req.log.error({ err }, "Failed to list Contingência atendimentos");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.post("/dom/atendimentos", async (req, res) => {
+router.post("/contingencia/atendimentos", async (req, res) => {
   try {
-    const parsed = insertDomAtendimentoSchema.safeParse(req.body);
+    const parsed = insertContingenciaAtendimentoSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const [row] = await db.insert(domAtendimentosTable).values(parsed.data).returning();
+    const [row] = await db.insert(contingenciaAtendimentosTable).values(parsed.data).returning();
     res.status(201).json(serializeAtendimento(row));
   } catch (err) {
-    req.log.error({ err }, "Failed to create DOM atendimento");
+    req.log.error({ err }, "Failed to create Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.get("/dom/atendimentos/:id", async (req, res) => {
+router.get("/contingencia/atendimentos/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
@@ -44,40 +50,40 @@ router.get("/dom/atendimentos/:id", async (req, res) => {
     }
     const [atendimento] = await db
       .select()
-      .from(domAtendimentosTable)
-      .where(eq(domAtendimentosTable.id, id));
+      .from(contingenciaAtendimentosTable)
+      .where(eq(contingenciaAtendimentosTable.id, id));
     if (!atendimento) {
       res.status(404).json({ error: "Atendimento not found" });
       return;
     }
     const itens = await db
       .select()
-      .from(domItensTable)
-      .where(eq(domItensTable.atendimentoId, id));
+      .from(contingenciaItensTable)
+      .where(eq(contingenciaItensTable.atendimentoId, id));
 
     res.json({ ...serializeAtendimento(atendimento), itens: itens.map(serializeItem) });
   } catch (err) {
-    req.log.error({ err }, "Failed to get DOM atendimento");
+    req.log.error({ err }, "Failed to get Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.put("/dom/atendimentos/:id", async (req, res) => {
+router.put("/contingencia/atendimentos/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const parsed = insertDomAtendimentoSchema.safeParse(req.body);
+    const parsed = insertContingenciaAtendimentoSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
     const [row] = await db
-      .update(domAtendimentosTable)
+      .update(contingenciaAtendimentosTable)
       .set(parsed.data)
-      .where(eq(domAtendimentosTable.id, id))
+      .where(eq(contingenciaAtendimentosTable.id, id))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Atendimento not found" });
@@ -85,22 +91,22 @@ router.put("/dom/atendimentos/:id", async (req, res) => {
     }
     res.json(serializeAtendimento(row));
   } catch (err) {
-    req.log.error({ err }, "Failed to update DOM atendimento");
+    req.log.error({ err }, "Failed to update Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.delete("/dom/atendimentos/:id", async (req, res) => {
+router.delete("/contingencia/atendimentos/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    await db.delete(domItensTable).where(eq(domItensTable.atendimentoId, id));
+    await db.delete(contingenciaItensTable).where(eq(contingenciaItensTable.atendimentoId, id));
     const [deleted] = await db
-      .delete(domAtendimentosTable)
-      .where(eq(domAtendimentosTable.id, id))
+      .delete(contingenciaAtendimentosTable)
+      .where(eq(contingenciaAtendimentosTable.id, id))
       .returning();
     if (!deleted) {
       res.status(404).json({ error: "Atendimento not found" });
@@ -108,12 +114,12 @@ router.delete("/dom/atendimentos/:id", async (req, res) => {
     }
     res.status(204).send();
   } catch (err) {
-    req.log.error({ err }, "Failed to delete DOM atendimento");
+    req.log.error({ err }, "Failed to delete Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.patch("/dom/atendimentos/:id/finalizar", async (req, res) => {
+router.patch("/contingencia/atendimentos/:id/finalizar", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
@@ -121,9 +127,9 @@ router.patch("/dom/atendimentos/:id/finalizar", async (req, res) => {
       return;
     }
     const [row] = await db
-      .update(domAtendimentosTable)
+      .update(contingenciaAtendimentosTable)
       .set({ status: "finalizado" })
-      .where(eq(domAtendimentosTable.id, id))
+      .where(eq(contingenciaAtendimentosTable.id, id))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Atendimento not found" });
@@ -131,12 +137,12 @@ router.patch("/dom/atendimentos/:id/finalizar", async (req, res) => {
     }
     res.json(serializeAtendimento(row));
   } catch (err) {
-    req.log.error({ err }, "Failed to finalize DOM atendimento");
+    req.log.error({ err }, "Failed to finalize Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.patch("/dom/atendimentos/:id/reabrir", async (req, res) => {
+router.patch("/contingencia/atendimentos/:id/reabrir", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
@@ -144,9 +150,9 @@ router.patch("/dom/atendimentos/:id/reabrir", async (req, res) => {
       return;
     }
     const [row] = await db
-      .update(domAtendimentosTable)
+      .update(contingenciaAtendimentosTable)
       .set({ status: "em_andamento" })
-      .where(eq(domAtendimentosTable.id, id))
+      .where(eq(contingenciaAtendimentosTable.id, id))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Atendimento not found" });
@@ -154,34 +160,34 @@ router.patch("/dom/atendimentos/:id/reabrir", async (req, res) => {
     }
     res.json(serializeAtendimento(row));
   } catch (err) {
-    req.log.error({ err }, "Failed to reopen DOM atendimento");
+    req.log.error({ err }, "Failed to reopen Contingência atendimento");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // ── Itens ────────────────────────────────────────────────────────────────────
 
-router.post("/dom/atendimentos/:id/itens", async (req, res) => {
+router.post("/contingencia/atendimentos/:id/itens", async (req, res) => {
   try {
     const atendimentoId = Number(req.params.id);
     if (!Number.isInteger(atendimentoId) || atendimentoId <= 0) {
       res.status(400).json({ error: "Invalid atendimento id" });
       return;
     }
-    const parsed = insertDomItemSchema.safeParse({ ...req.body, atendimentoId });
+    const parsed = insertContingenciaItemSchema.safeParse({ ...req.body, atendimentoId });
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const [item] = await db.insert(domItensTable).values(parsed.data).returning();
+    const [item] = await db.insert(contingenciaItensTable).values(parsed.data).returning();
     res.status(201).json(serializeItem(item));
   } catch (err) {
-    req.log.error({ err }, "Failed to add DOM item");
+    req.log.error({ err }, "Failed to add Contingência item");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.delete("/dom/atendimentos/:atendimentoId/itens/:itemId", async (req, res) => {
+router.delete("/contingencia/atendimentos/:atendimentoId/itens/:itemId", async (req, res) => {
   try {
     const itemId = Number(req.params.itemId);
     if (!Number.isInteger(itemId) || itemId <= 0) {
@@ -189,8 +195,8 @@ router.delete("/dom/atendimentos/:atendimentoId/itens/:itemId", async (req, res)
       return;
     }
     const [deleted] = await db
-      .delete(domItensTable)
-      .where(eq(domItensTable.id, itemId))
+      .delete(contingenciaItensTable)
+      .where(eq(contingenciaItensTable.id, itemId))
       .returning();
     if (!deleted) {
       res.status(404).json({ error: "Item not found" });
@@ -198,18 +204,18 @@ router.delete("/dom/atendimentos/:atendimentoId/itens/:itemId", async (req, res)
     }
     res.status(204).send();
   } catch (err) {
-    req.log.error({ err }, "Failed to delete DOM item");
+    req.log.error({ err }, "Failed to delete Contingência item");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // ── Serializers ──────────────────────────────────────────────────────────────
 
-function serializeAtendimento(a: typeof domAtendimentosTable.$inferSelect) {
+function serializeAtendimento(a: typeof contingenciaAtendimentosTable.$inferSelect) {
   return { ...a, createdAt: a.createdAt.toISOString() };
 }
 
-function serializeItem(i: typeof domItensTable.$inferSelect) {
+function serializeItem(i: typeof contingenciaItensTable.$inferSelect) {
   return { ...i, createdAt: i.createdAt.toISOString() };
 }
 

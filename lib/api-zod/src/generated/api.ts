@@ -355,6 +355,24 @@ export const FinalizeDomAtendimentoResponse = zod.object({
 
 
 /**
+ * @summary Reopen a finalized DOM atendimento
+ */
+export const ReopenDomAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReopenDomAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Add an item to a DOM atendimento
  */
 export const AddDomItemParams = zod.object({
@@ -381,6 +399,174 @@ export const AddDomItemBody = zod.object({
  * @summary Remove an item from a DOM atendimento
  */
 export const DeleteDomItemParams = zod.object({
+  "atendimentoId": zod.coerce.number(),
+  "itemId": zod.coerce.number()
+})
+
+
+/**
+ * @summary List all Contingência atendimentos
+ */
+export const ListContingenciaAtendimentosResponseItem = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+export const ListContingenciaAtendimentosResponse = zod.array(ListContingenciaAtendimentosResponseItem)
+
+
+/**
+ * @summary Start a new Contingência atendimento
+ */
+
+
+
+
+
+export const CreateContingenciaAtendimentoBody = zod.object({
+  "nomePaciente": zod.string().min(1),
+  "numeroAtendimento": zod.string().min(1),
+  "data": zod.string().min(1),
+  "observacoes": zod.string().optional(),
+  "status": zod.enum(['em_andamento', 'finalizado']).optional()
+})
+
+
+/**
+ * @summary Get a Contingência atendimento with its items
+ */
+export const GetContingenciaAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetContingenciaAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "itens": zod.array(zod.object({
+  "id": zod.number(),
+  "atendimentoId": zod.number(),
+  "codigoBarras": zod.string(),
+  "codigoInterno": zod.string(),
+  "nome": zod.string(),
+  "lote": zod.string(),
+  "quantidade": zod.number(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Update a Contingência atendimento
+ */
+export const UpdateContingenciaAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+export const UpdateContingenciaAtendimentoBody = zod.object({
+  "nomePaciente": zod.string().min(1),
+  "numeroAtendimento": zod.string().min(1),
+  "data": zod.string().min(1),
+  "observacoes": zod.string().optional(),
+  "status": zod.enum(['em_andamento', 'finalizado']).optional()
+})
+
+export const UpdateContingenciaAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a Contingência atendimento
+ */
+export const DeleteContingenciaAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Finalize a Contingência atendimento
+ */
+export const FinalizeContingenciaAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const FinalizeContingenciaAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Reopen a finalized Contingência atendimento
+ */
+export const ReopenContingenciaAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReopenContingenciaAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Add an item to a Contingência atendimento
+ */
+export const AddContingenciaItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+
+
+export const AddContingenciaItemBody = zod.object({
+  "codigoBarras": zod.string().min(1),
+  "codigoInterno": zod.string().min(1),
+  "nome": zod.string().min(1),
+  "lote": zod.string().min(1),
+  "quantidade": zod.number().min(1)
+})
+
+
+/**
+ * @summary Remove an item from a Contingência atendimento
+ */
+export const DeleteContingenciaItemParams = zod.object({
   "atendimentoId": zod.coerce.number(),
   "itemId": zod.coerce.number()
 })

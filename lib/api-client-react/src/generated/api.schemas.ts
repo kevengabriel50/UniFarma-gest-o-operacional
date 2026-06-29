@@ -202,6 +202,72 @@ export interface DomItemInput {
   quantidade: number;
 }
 
+export type ContingenciaAtendimentoStatus = typeof ContingenciaAtendimentoStatus[keyof typeof ContingenciaAtendimentoStatus];
+
+
+export const ContingenciaAtendimentoStatus = {
+  em_andamento: 'em_andamento',
+  finalizado: 'finalizado',
+} as const;
+
+export interface ContingenciaAtendimento {
+  id: number;
+  nomePaciente: string;
+  numeroAtendimento: string;
+  data: string;
+  /** @nullable */
+  observacoes?: string | null;
+  status: ContingenciaAtendimentoStatus;
+  createdAt: string;
+}
+
+export type ContingenciaAtendimentoInputStatus = typeof ContingenciaAtendimentoInputStatus[keyof typeof ContingenciaAtendimentoInputStatus];
+
+
+export const ContingenciaAtendimentoInputStatus = {
+  em_andamento: 'em_andamento',
+  finalizado: 'finalizado',
+} as const;
+
+export interface ContingenciaAtendimentoInput {
+  /** @minLength 1 */
+  nomePaciente: string;
+  /** @minLength 1 */
+  numeroAtendimento: string;
+  /** @minLength 1 */
+  data: string;
+  observacoes?: string;
+  status?: ContingenciaAtendimentoInputStatus;
+}
+
+export interface ContingenciaItem {
+  id: number;
+  atendimentoId: number;
+  codigoBarras: string;
+  codigoInterno: string;
+  nome: string;
+  lote: string;
+  quantidade: number;
+  createdAt: string;
+}
+
+export type ContingenciaAtendimentoDetail = ContingenciaAtendimento & {
+  itens: ContingenciaItem[];
+};
+
+export interface ContingenciaItemInput {
+  /** @minLength 1 */
+  codigoBarras: string;
+  /** @minLength 1 */
+  codigoInterno: string;
+  /** @minLength 1 */
+  nome: string;
+  /** @minLength 1 */
+  lote: string;
+  /** @minimum 1 */
+  quantidade: number;
+}
+
 export type ListEventsParams = {
 start?: string;
 end?: string;

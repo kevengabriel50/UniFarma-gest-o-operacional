@@ -15,6 +15,8 @@ tags:
     description: Medication master data
   - name: dom
     description: DOM (Atendimento Domiciliar) operations
+  - name: contingencia
+    description: Contingência operations
 paths:
   /healthz:
     get:
@@ -355,6 +357,26 @@ paths:
                 $ref: "#/components/schemas/DomAtendimento"
         "404":
           description: Not found
+  /dom/atendimentos/{id}/reabrir:
+    patch:
+      operationId: reopenDomAtendimento
+      tags: [dom]
+      summary: Reopen a finalized DOM atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reopened atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomAtendimento"
+        "404":
+          description: Not found
   /dom/atendimentos/{id}/itens:
     post:
       operationId: addDomItem
@@ -386,6 +408,189 @@ paths:
       operationId: deleteDomItem
       tags: [dom]
       summary: Remove an item from a DOM atendimento
+      parameters:
+        - name: atendimentoId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /contingencia/atendimentos:
+    get:
+      operationId: listContingenciaAtendimentos
+      tags: [contingencia]
+      summary: List all Contingência atendimentos
+      responses:
+        "200":
+          description: List of atendimentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContingenciaAtendimento"
+    post:
+      operationId: createContingenciaAtendimento
+      tags: [contingencia]
+      summary: Start a new Contingência atendimento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContingenciaAtendimentoInput"
+      responses:
+        "201":
+          description: Created atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaAtendimento"
+        "400":
+          description: Bad request
+  /contingencia/atendimentos/{id}:
+    get:
+      operationId: getContingenciaAtendimento
+      tags: [contingencia]
+      summary: Get a Contingência atendimento with its items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Atendimento with items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaAtendimentoDetail"
+        "404":
+          description: Not found
+    put:
+      operationId: updateContingenciaAtendimento
+      tags: [contingencia]
+      summary: Update a Contingência atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContingenciaAtendimentoInput"
+      responses:
+        "200":
+          description: Updated atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaAtendimento"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteContingenciaAtendimento
+      tags: [contingencia]
+      summary: Delete a Contingência atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /contingencia/atendimentos/{id}/finalizar:
+    patch:
+      operationId: finalizeContingenciaAtendimento
+      tags: [contingencia]
+      summary: Finalize a Contingência atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Finalized atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaAtendimento"
+        "404":
+          description: Not found
+  /contingencia/atendimentos/{id}/reabrir:
+    patch:
+      operationId: reopenContingenciaAtendimento
+      tags: [contingencia]
+      summary: Reopen a finalized Contingência atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reopened atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaAtendimento"
+        "404":
+          description: Not found
+  /contingencia/atendimentos/{id}/itens:
+    post:
+      operationId: addContingenciaItem
+      tags: [contingencia]
+      summary: Add an item to a Contingência atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContingenciaItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContingenciaItem"
+        "400":
+          description: Bad request
+  /contingencia/atendimentos/{atendimentoId}/itens/{itemId}:
+    delete:
+      operationId: deleteContingenciaItem
+      tags: [contingencia]
+      summary: Remove an item from a Contingência atendimento
       parameters:
         - name: atendimentoId
           in: path
@@ -633,6 +838,93 @@ components:
         createdAt:
           type: string
     DomItemInput:
+      type: object
+      required: [codigoBarras, codigoInterno, nome, lote, quantidade]
+      properties:
+        codigoBarras:
+          type: string
+          minLength: 1
+        codigoInterno:
+          type: string
+          minLength: 1
+        nome:
+          type: string
+          minLength: 1
+        lote:
+          type: string
+          minLength: 1
+        quantidade:
+          type: integer
+          minimum: 1
+
+    ContingenciaAtendimento:
+      type: object
+      required: [id, nomePaciente, numeroAtendimento, data, status, createdAt]
+      properties:
+        id:
+          type: integer
+        nomePaciente:
+          type: string
+        numeroAtendimento:
+          type: string
+        data:
+          type: string
+        observacoes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [em_andamento, finalizado]
+        createdAt:
+          type: string
+    ContingenciaAtendimentoInput:
+      type: object
+      required: [nomePaciente, numeroAtendimento, data]
+      properties:
+        nomePaciente:
+          type: string
+          minLength: 1
+        numeroAtendimento:
+          type: string
+          minLength: 1
+        data:
+          type: string
+          minLength: 1
+        observacoes:
+          type: string
+        status:
+          type: string
+          enum: [em_andamento, finalizado]
+    ContingenciaAtendimentoDetail:
+      allOf:
+        - $ref: "#/components/schemas/ContingenciaAtendimento"
+        - type: object
+          required: [itens]
+          properties:
+            itens:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContingenciaItem"
+    ContingenciaItem:
+      type: object
+      required: [id, atendimentoId, codigoBarras, codigoInterno, nome, lote, quantidade, createdAt]
+      properties:
+        id:
+          type: integer
+        atendimentoId:
+          type: integer
+        codigoBarras:
+          type: string
+        codigoInterno:
+          type: string
+        nome:
+          type: string
+        lote:
+          type: string
+        quantidade:
+          type: integer
+        createdAt:
+          type: string
+    ContingenciaItemInput:
       type: object
       required: [codigoBarras, codigoInterno, nome, lote, quantidade]
       properties:

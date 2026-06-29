@@ -12,6 +12,7 @@ import TasksPage from "@/pages/TasksPage";
 import MedicamentosPage from "@/pages/MedicamentosPage";
 import HistoricoPage from "@/pages/HistoricoPage";
 import DomPage from "@/pages/DomPage";
+import ContingenciaPage from "@/pages/ContingenciaPage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppProvider } from "@/lib/app-context";
 
@@ -27,6 +28,7 @@ function Router() {
         <Route path="/tasks" component={TasksPage} />
         <Route path="/medicamentos" component={MedicamentosPage} />
         <Route path="/dom" component={DomPage} />
+        <Route path="/contingencia" component={ContingenciaPage} />
         <Route path="/historico" component={HistoricoPage} />
         <Route component={NotFound} />
       </Switch>

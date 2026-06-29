@@ -23,6 +23,11 @@ import type {
   CalendarEvent,
   CalendarEventInput,
   CalendarEventUpdate,
+  ContingenciaAtendimento,
+  ContingenciaAtendimentoDetail,
+  ContingenciaAtendimentoInput,
+  ContingenciaItem,
+  ContingenciaItemInput,
   DomAtendimento,
   DomAtendimentoDetail,
   DomAtendimentoInput,
@@ -1318,6 +1323,76 @@ export const useFinalizeDomAtendimento = <TError = ErrorType<void>,
       return useMutation(getFinalizeDomAtendimentoMutationOptions(options));
     }
 
+export const getReopenDomAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}/reabrir`
+}
+
+/**
+ * @summary Reopen a finalized DOM atendimento
+ */
+export const reopenDomAtendimento = async (id: number, options?: RequestInit): Promise<DomAtendimento> => {
+
+  return customFetch<DomAtendimento>(getReopenDomAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getReopenDomAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reopenDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reopenDomAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['reopenDomAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reopenDomAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reopenDomAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReopenDomAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof reopenDomAtendimento>>>
+
+    export type ReopenDomAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Reopen a finalized DOM atendimento
+ */
+export const useReopenDomAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reopenDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reopenDomAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getReopenDomAtendimentoMutationOptions(options));
+    }
+
 export const getAddDomItemUrl = (id: number,) => {
 
 
@@ -1460,5 +1535,656 @@ export const useDeleteDomItem = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteDomItemMutationOptions(options));
+    }
+
+export const getListContingenciaAtendimentosUrl = () => {
+
+
+
+
+  return `/api/contingencia/atendimentos`
+}
+
+/**
+ * @summary List all Contingência atendimentos
+ */
+export const listContingenciaAtendimentos = async ( options?: RequestInit): Promise<ContingenciaAtendimento[]> => {
+
+  return customFetch<ContingenciaAtendimento[]>(getListContingenciaAtendimentosUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListContingenciaAtendimentosQueryKey = () => {
+    return [
+    `/api/contingencia/atendimentos`
+    ] as const;
+    }
+
+
+export const getListContingenciaAtendimentosQueryOptions = <TData = Awaited<ReturnType<typeof listContingenciaAtendimentos>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listContingenciaAtendimentos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListContingenciaAtendimentosQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listContingenciaAtendimentos>>> = ({ signal }) => listContingenciaAtendimentos({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listContingenciaAtendimentos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListContingenciaAtendimentosQueryResult = NonNullable<Awaited<ReturnType<typeof listContingenciaAtendimentos>>>
+export type ListContingenciaAtendimentosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all Contingência atendimentos
+ */
+
+export function useListContingenciaAtendimentos<TData = Awaited<ReturnType<typeof listContingenciaAtendimentos>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listContingenciaAtendimentos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListContingenciaAtendimentosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateContingenciaAtendimentoUrl = () => {
+
+
+
+
+  return `/api/contingencia/atendimentos`
+}
+
+/**
+ * @summary Start a new Contingência atendimento
+ */
+export const createContingenciaAtendimento = async (contingenciaAtendimentoInput: ContingenciaAtendimentoInput, options?: RequestInit): Promise<ContingenciaAtendimento> => {
+
+  return customFetch<ContingenciaAtendimento>(getCreateContingenciaAtendimentoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contingenciaAtendimentoInput,)
+  }
+);}
+
+
+
+
+export const getCreateContingenciaAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContingenciaAtendimento>>, TError,{data: BodyType<ContingenciaAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createContingenciaAtendimento>>, TError,{data: BodyType<ContingenciaAtendimentoInput>}, TContext> => {
+
+const mutationKey = ['createContingenciaAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createContingenciaAtendimento>>, {data: BodyType<ContingenciaAtendimentoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createContingenciaAtendimento(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateContingenciaAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof createContingenciaAtendimento>>>
+    export type CreateContingenciaAtendimentoMutationBody = BodyType<ContingenciaAtendimentoInput>
+    export type CreateContingenciaAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a new Contingência atendimento
+ */
+export const useCreateContingenciaAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContingenciaAtendimento>>, TError,{data: BodyType<ContingenciaAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createContingenciaAtendimento>>,
+        TError,
+        {data: BodyType<ContingenciaAtendimentoInput>},
+        TContext
+      > => {
+      return useMutation(getCreateContingenciaAtendimentoMutationOptions(options));
+    }
+
+export const getGetContingenciaAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}`
+}
+
+/**
+ * @summary Get a Contingência atendimento with its items
+ */
+export const getContingenciaAtendimento = async (id: number, options?: RequestInit): Promise<ContingenciaAtendimentoDetail> => {
+
+  return customFetch<ContingenciaAtendimentoDetail>(getGetContingenciaAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContingenciaAtendimentoQueryKey = (id: number,) => {
+    return [
+    `/api/contingencia/atendimentos/${id}`
+    ] as const;
+    }
+
+
+export const getGetContingenciaAtendimentoQueryOptions = <TData = Awaited<ReturnType<typeof getContingenciaAtendimento>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContingenciaAtendimento>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContingenciaAtendimentoQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContingenciaAtendimento>>> = ({ signal }) => getContingenciaAtendimento(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContingenciaAtendimento>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContingenciaAtendimentoQueryResult = NonNullable<Awaited<ReturnType<typeof getContingenciaAtendimento>>>
+export type GetContingenciaAtendimentoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a Contingência atendimento with its items
+ */
+
+export function useGetContingenciaAtendimento<TData = Awaited<ReturnType<typeof getContingenciaAtendimento>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContingenciaAtendimento>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContingenciaAtendimentoQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateContingenciaAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}`
+}
+
+/**
+ * @summary Update a Contingência atendimento
+ */
+export const updateContingenciaAtendimento = async (id: number,
+    contingenciaAtendimentoInput: ContingenciaAtendimentoInput, options?: RequestInit): Promise<ContingenciaAtendimento> => {
+
+  return customFetch<ContingenciaAtendimento>(getUpdateContingenciaAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contingenciaAtendimentoInput,)
+  }
+);}
+
+
+
+
+export const getUpdateContingenciaAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContingenciaAtendimento>>, TError,{id: number;data: BodyType<ContingenciaAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateContingenciaAtendimento>>, TError,{id: number;data: BodyType<ContingenciaAtendimentoInput>}, TContext> => {
+
+const mutationKey = ['updateContingenciaAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateContingenciaAtendimento>>, {id: number;data: BodyType<ContingenciaAtendimentoInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateContingenciaAtendimento(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateContingenciaAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof updateContingenciaAtendimento>>>
+    export type UpdateContingenciaAtendimentoMutationBody = BodyType<ContingenciaAtendimentoInput>
+    export type UpdateContingenciaAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a Contingência atendimento
+ */
+export const useUpdateContingenciaAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContingenciaAtendimento>>, TError,{id: number;data: BodyType<ContingenciaAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateContingenciaAtendimento>>,
+        TError,
+        {id: number;data: BodyType<ContingenciaAtendimentoInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateContingenciaAtendimentoMutationOptions(options));
+    }
+
+export const getDeleteContingenciaAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}`
+}
+
+/**
+ * @summary Delete a Contingência atendimento
+ */
+export const deleteContingenciaAtendimento = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteContingenciaAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteContingenciaAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteContingenciaAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteContingenciaAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteContingenciaAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteContingenciaAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteContingenciaAtendimento>>>
+
+    export type DeleteContingenciaAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a Contingência atendimento
+ */
+export const useDeleteContingenciaAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteContingenciaAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteContingenciaAtendimentoMutationOptions(options));
+    }
+
+export const getFinalizeContingenciaAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}/finalizar`
+}
+
+/**
+ * @summary Finalize a Contingência atendimento
+ */
+export const finalizeContingenciaAtendimento = async (id: number, options?: RequestInit): Promise<ContingenciaAtendimento> => {
+
+  return customFetch<ContingenciaAtendimento>(getFinalizeContingenciaAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getFinalizeContingenciaAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['finalizeContingenciaAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  finalizeContingenciaAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinalizeContingenciaAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>>
+
+    export type FinalizeContingenciaAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Finalize a Contingência atendimento
+ */
+export const useFinalizeContingenciaAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof finalizeContingenciaAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getFinalizeContingenciaAtendimentoMutationOptions(options));
+    }
+
+export const getReopenContingenciaAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}/reabrir`
+}
+
+/**
+ * @summary Reopen a finalized Contingência atendimento
+ */
+export const reopenContingenciaAtendimento = async (id: number, options?: RequestInit): Promise<ContingenciaAtendimento> => {
+
+  return customFetch<ContingenciaAtendimento>(getReopenContingenciaAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getReopenContingenciaAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reopenContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reopenContingenciaAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['reopenContingenciaAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reopenContingenciaAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reopenContingenciaAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReopenContingenciaAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof reopenContingenciaAtendimento>>>
+
+    export type ReopenContingenciaAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Reopen a finalized Contingência atendimento
+ */
+export const useReopenContingenciaAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reopenContingenciaAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reopenContingenciaAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getReopenContingenciaAtendimentoMutationOptions(options));
+    }
+
+export const getAddContingenciaItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${id}/itens`
+}
+
+/**
+ * @summary Add an item to a Contingência atendimento
+ */
+export const addContingenciaItem = async (id: number,
+    contingenciaItemInput: ContingenciaItemInput, options?: RequestInit): Promise<ContingenciaItem> => {
+
+  return customFetch<ContingenciaItem>(getAddContingenciaItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contingenciaItemInput,)
+  }
+);}
+
+
+
+
+export const getAddContingenciaItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContingenciaItem>>, TError,{id: number;data: BodyType<ContingenciaItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addContingenciaItem>>, TError,{id: number;data: BodyType<ContingenciaItemInput>}, TContext> => {
+
+const mutationKey = ['addContingenciaItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addContingenciaItem>>, {id: number;data: BodyType<ContingenciaItemInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addContingenciaItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddContingenciaItemMutationResult = NonNullable<Awaited<ReturnType<typeof addContingenciaItem>>>
+    export type AddContingenciaItemMutationBody = BodyType<ContingenciaItemInput>
+    export type AddContingenciaItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Add an item to a Contingência atendimento
+ */
+export const useAddContingenciaItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContingenciaItem>>, TError,{id: number;data: BodyType<ContingenciaItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addContingenciaItem>>,
+        TError,
+        {id: number;data: BodyType<ContingenciaItemInput>},
+        TContext
+      > => {
+      return useMutation(getAddContingenciaItemMutationOptions(options));
+    }
+
+export const getDeleteContingenciaItemUrl = (atendimentoId: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/contingencia/atendimentos/${atendimentoId}/itens/${itemId}`
+}
+
+/**
+ * @summary Remove an item from a Contingência atendimento
+ */
+export const deleteContingenciaItem = async (atendimentoId: number,
+    itemId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteContingenciaItemUrl(atendimentoId,itemId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteContingenciaItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaItem>>, TError,{atendimentoId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaItem>>, TError,{atendimentoId: number;itemId: number}, TContext> => {
+
+const mutationKey = ['deleteContingenciaItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteContingenciaItem>>, {atendimentoId: number;itemId: number}> = (props) => {
+          const {atendimentoId,itemId} = props ?? {};
+
+          return  deleteContingenciaItem(atendimentoId,itemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteContingenciaItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteContingenciaItem>>>
+
+    export type DeleteContingenciaItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove an item from a Contingência atendimento
+ */
+export const useDeleteContingenciaItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContingenciaItem>>, TError,{atendimentoId: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteContingenciaItem>>,
+        TError,
+        {atendimentoId: number;itemId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteContingenciaItemMutationOptions(options));
     }
 

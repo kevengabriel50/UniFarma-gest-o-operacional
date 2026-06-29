@@ -20,3 +20,4 @@
 export * from "./events";
 export * from "./medications";
 export * from "./dom";
+export * from "./contingencia";

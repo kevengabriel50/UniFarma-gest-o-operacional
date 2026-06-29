@@ -1,0 +1,90 @@
+Quero realizar melhorias no projeto UniFarma mantendo toda a arquitetura atual, tecnologias utilizadas e padrão de código existente. Antes de alterar qualquer arquivo, analise toda a estrutura do projeto para entender como o sistema funciona e preserve ao máximo a organização atual.
+
+As alterações devem ser feitas sem quebrar funcionalidades existentes.
+
+## 1. Permitir edição de atendimentos finalizados (Prioridade Máxima)
+
+Atualmente, quando um atendimento DOM é finalizado, ele não pode mais ser editado.
+
+Preciso que seja possível:
+
+- Reabrir um atendimento finalizado.
+- Alterar informações do paciente.
+- Adicionar novos medicamentos.
+- Remover medicamentos.
+- Alterar quantidades.
+- Corrigir qualquer informação cadastrada.
+- Finalizar novamente após as alterações.
+
+Essa funcionalidade deve manter a integridade dos dados e seguir o mesmo fluxo já existente para criação dos atendimentos.
+
+Caso exista algum status de "Finalizado", ele deve continuar existindo, mas sem impedir futuras correções.
+
+---
+
+## 2. Exibir códigos de barras corretamente
+
+Hoje o sistema lê o código de barras do medicamento durante o cadastro, porém posteriormente só consigo visualizar o código interno.
+
+Preciso identificar onde está o problema.
+
+Verifique:
+
+- banco de dados
+- schema
+- Drizzle
+- API
+- OpenAPI
+- Orval
+- React
+- componentes da tela
+
+O código de barras deve ser salvo corretamente e também exibido na visualização do atendimento junto com o código interno.
+
+Não quero perder nenhuma informação existente.
+
+---
+
+## 3. Criar o módulo Contingência
+
+Preciso criar um novo módulo chamado "Contingência".
+
+Esse módulo terá praticamente o mesmo comportamento do módulo DOM.
+
+A ideia é reutilizar o máximo possível do código existente.
+
+O fluxo será praticamente idêntico.
+
+Deve possuir:
+
+- listagem
+- criação
+- edição
+- finalização
+- impressão (caso já exista no DOM)
+- medicamentos
+- paciente
+- códigos internos
+- códigos de barras
+
+A única diferença é que os registros pertencem à Contingência, não ao DOM.
+
+Evite duplicação de código.
+
+Caso seja possível reutilizar componentes, hooks, serviços e rotas existentes, prefira essa abordagem.
+
+---
+
+## Requisitos importantes
+
+- Não alterar a arquitetura atual do projeto.
+- Não remover funcionalidades existentes.
+- Não criar código duplicado desnecessariamente.
+- Manter TypeScript tipado corretamente.
+- Manter compatibilidade com React, Express, PostgreSQL, Drizzle ORM, OpenAPI, Orval e Zod.
+- Manter o padrão visual existente.
+- Sempre explicar o motivo das alterações antes de aplicá-las.
+- Caso alguma alteração exija mudança no banco de dados, gerar automaticamente a migration do Drizzle.
+- Atualizar APIs, schemas e tipos gerados sempre que necessário.
+
+Antes de começar a modificar qualquer coisa, faça uma análise completa da estrutura do projeto e apresente um plano resumido das alterações que serão realizadas.
