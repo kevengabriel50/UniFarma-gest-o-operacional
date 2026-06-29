@@ -7,6 +7,9 @@ import {
   useAddDomItem,
   useDeleteDomItem,
   useGetMedicationByBarcode,
+  // Assumindo a existência das mutações de update e delete com base no padrão da API
+  useUpdateDomAtendimento, 
+  useDeleteDomAtendimento,
   getListDomAtendimentosQueryKey,
   getGetDomAtendimentoQueryKey,
   getGetMedicationByBarcodeQueryKey,
@@ -32,13 +35,16 @@ import {
   ClipboardCheck,
   CheckCircle2,
   Printer,
+  Edit2,
+  Settings2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type Step = "list" | "novo" | "itens" | "revisao";
+type Step = "list" | "novo" | "editar_cadastro" | "itens" | "revisao";
 
 type ItemDraft = {
+  id?: number;
   codigoBarras: string;
   codigoInterno: string;
   nome: string;
@@ -71,7 +77,7 @@ function PrintView({ atendimento, itens }: { atendimento: DomAtendimento; itens:
       <table className="w-full border-collapse border border-gray-300 text-xs">
         <thead>
           <tr className="bg-gray-100">
-            <th className="border border-gray-300 px-2 py-1 text-left">Código Interno</th>
+            <th className="border border-gray-300 px-2 py-1 text-left">Código EAN / Interno</th>
             <th className="border border-gray-300 px-2 py-1 text-left">Nome</th>
             <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
             <th className="border border-gray-300 px-2 py-1 text-center">Qtd</th>
@@ -80,7 +86,9 @@ function PrintView({ atendimento, itens }: { atendimento: DomAtendimento; itens:
         <tbody>
           {itens.map((item) => (
             <tr key={item.id}>
-              <td className="border border-gray-300 px-2 py-1 font-mono">{item.codigoInterno}</td>
+              <td className="border border-gray-300 px-2 py-1 font-mono">
+                {item.codigoBarras ? `${item.codigoBarras} / ` : ""}{item.codigoInterno}
+              </td>
               <td className="border border-gray-300 px-2 py-1">{item.nome}</td>
               <td className="border border-gray-300 px-2 py-1 font-mono">{item.lote}</td>
               <td className="border border-gray-300 px-2 py-1 text-center font-bold">{item.quantidade}</td>
@@ -103,7 +111,7 @@ export default function DomPage() {
   const [currentAtendimentoId, setCurrentAtendimentoId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [novoForm, setNovoForm] = useState({ nomePaciente: "", numeroAtendimento: "", data: new Date().toISOString().split("T")[0], observacoes: "" });
+  const [cadastroForm, setCadastroForm] = useState({ nomePaciente: "", numeroAtendimento: "", data: new Date().toISOString().split("T")[0], observacoes: "" });
   const [itemDraft, setItemDraft] = useState<ItemDraft>(EMPTY_ITEM);
   const [isManualItem, setIsManualItem] = useState(false);
   const [scanInput, setScanInput] = useState("");
@@ -115,10 +123,22 @@ export default function DomPage() {
   const { data: atendimentos = [], isLoading: isLoadingList } = useListDomAtendimentos();
   const { data: atendimentoDetail } = useGetDomAtendimento(currentAtendimentoId ?? 0, {
     query: {
-      enabled: !!currentAtendimentoId && (step === "itens" || step === "revisao"),
+      enabled: !!currentAtendimentoId && (step === "itens" || step === "revisao" || step === "editar_cadastro"),
       queryKey: getGetDomAtendimentoQueryKey(currentAtendimentoId ?? 0),
     },
   });
+
+  // Preenche o formulário de cadastro quando os detalhes do atendimento carregarem (para edição)
+  useEffect(() => {
+    if (atendimentoDetail && step === "editar_cadastro") {
+      setCadastroForm({
+        nomePaciente: atendimentoDetail.nomePaciente,
+        numeroAtendimento: atendimentoDetail.numeroAtendimento,
+        data: atendimentoDetail.data,
+        observacoes: atendimentoDetail.observacoes || "",
+      });
+    }
+  }, [atendimentoDetail, step]);
 
   const { data: scannedMed, isError: scanNotFound } = useGetMedicationByBarcode(
     scanBarcode ?? "",
@@ -157,15 +177,39 @@ export default function DomPage() {
     },
   });
 
+  const updateAtendimentoMutation = useUpdateDomAtendimento({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListDomAtendimentosQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDomAtendimentoQueryKey(currentAtendimentoId ?? 0) });
+        toast({ title: "Cadastro atualizado com sucesso" });
+        setStep("itens");
+      },
+      onError: () => toast({ title: "Erro ao atualizar cadastro", variant: "destructive" }),
+    },
+  });
+
+  const deleteAtendimentoMutation = useDeleteDomAtendimento({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListDomAtendimentosQueryKey() });
+        toast({ title: "Atendimento removido com sucesso" });
+        setStep("list");
+        setCurrentAtendimentoId(null);
+      },
+      onError: () => toast({ title: "Erro ao excluir atendimento", variant: "destructive" }),
+    },
+  });
+
   const addItemMutation = useAddDomItem({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetDomAtendimentoQueryKey(currentAtendimentoId ?? 0) });
         setItemDraft(EMPTY_ITEM);
         setIsManualItem(false);
-        toast({ title: "Item adicionado" });
+        toast({ title: "Item salvo com sucesso" });
       },
-      onError: () => toast({ title: "Erro ao adicionar item", variant: "destructive" }),
+      onError: () => toast({ title: "Erro ao salvar item", variant: "destructive" }),
     },
   });
 
@@ -206,12 +250,29 @@ export default function DomPage() {
     addItemMutation.mutate({ id: currentAtendimentoId ?? 0, data: itemDraft });
   }
 
-  function handleFinalizar() {
-    finalizeMutation.mutate({ id: currentAtendimentoId ?? 0 });
+  function handleEditItemInline(item: DomItem) {
+    // Carrega o rascunho de volta para edição no topo e remove momentaneamente da lista
+    setItemDraft({
+      id: item.id,
+      codigoBarras: item.codigoBarras || "",
+      codigoInterno: item.codigoInterno,
+      nome: item.nome,
+      lote: item.lote,
+      quantidade: item.quantidade,
+    });
+    setIsManualItem(true);
+    deleteItemMutation.mutate({ atendimentoId: currentAtendimentoId ?? 0, itemId: item.id });
+    toast({ title: "Item carregado para edição" });
   }
 
-  function handlePrint() {
-    window.print();
+  function handleDeleteAtendimento() {
+    if (window.confirm("Tem certeza absoluta de que deseja excluir este atendimento e todos os seus itens?")) {
+      deleteAtendimentoMutation.mutate({ id: currentAtendimentoId ?? 0 });
+    }
+  }
+
+  function handleFinalizar() {
+    finalizeMutation.mutate({ id: currentAtendimentoId ?? 0 });
   }
 
   const filteredAtendimentos = atendimentos.filter((a) => {
@@ -241,9 +302,8 @@ export default function DomPage() {
             />
           </div>
           <Button
-            onClick={() => { setNovoForm({ nomePaciente: "", numeroAtendimento: "", data: new Date().toISOString().split("T")[0], observacoes: "" }); setStep("novo"); }}
+            onClick={() => { setCadastroForm({ nomePaciente: "", numeroAtendimento: "", data: new Date().toISOString().split("T")[0], observacoes: "" }); setStep("novo"); }}
             className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2 shrink-0"
-            data-testid="button-novo-atendimento"
           >
             <Plus className="w-4 h-4" />
             Novo Atendimento
@@ -282,7 +342,7 @@ export default function DomPage() {
                   <div
                     key={a.id}
                     className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors cursor-pointer"
-                    onClick={() => { setCurrentAtendimentoId(a.id); setStep(a.status === "finalizado" ? "revisao" : "itens"); }}
+                    onClick={() => { setCurrentAtendimentoId(a.id); setStep("itens"); }}
                   >
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{a.nomePaciente}</p>
@@ -309,18 +369,19 @@ export default function DomPage() {
     );
   }
 
-  // ── STEP: NOVO ──────────────────────────────────────────────────────────────
-  if (step === "novo") {
+  // ── STEP: NOVO & EDITAR CADASTRO ────────────────────────────────────────────
+  if (step === "novo" || step === "editar_cadastro") {
+    const isEditing = step === "editar_cadastro";
     return (
       <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5">
-        <button onClick={() => setStep("list")} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+        <button onClick={() => setStep(isEditing ? "itens" : "list")} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Voltar
         </button>
         <Card className="shadow-none border border-gray-100">
           <CardHeader className="border-b border-[#e6f7f0] bg-[#f7fdf9]">
             <CardTitle className="text-base flex items-center gap-2">
               <Home className="w-5 h-5 text-[#00995D]" />
-              Novo Atendimento DOM
+              {isEditing ? "Alterar Dados do Atendimento" : "Novo Atendimento DOM"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 space-y-4">
@@ -329,50 +390,68 @@ export default function DomPage() {
                 <Label>Nome do Paciente <span className="text-red-400">*</span></Label>
                 <Input
                   placeholder="Nome completo"
-                  value={novoForm.nomePaciente}
-                  onChange={(e) => setNovoForm((f) => ({ ...f, nomePaciente: e.target.value }))}
-                  data-testid="input-nome-paciente"
+                  value={cadastroForm.nomePaciente}
+                  onChange={(e) => setCadastroForm((f) => ({ ...f, nomePaciente: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>Número do Atendimento <span className="text-red-400">*</span></Label>
                 <Input
                   placeholder="Ex: 2024001234"
-                  value={novoForm.numeroAtendimento}
-                  onChange={(e) => setNovoForm((f) => ({ ...f, numeroAtendimento: e.target.value }))}
-                  data-testid="input-numero-atendimento"
+                  value={cadastroForm.numeroAtendimento}
+                  onChange={(e) => setCadastroForm((f) => ({ ...f, numeroAtendimento: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>Data</Label>
                 <Input
                   type="date"
-                  value={novoForm.data}
-                  onChange={(e) => setNovoForm((f) => ({ ...f, data: e.target.value }))}
+                  value={cadastroForm.data}
+                  onChange={(e) => setCadastroForm((f) => ({ ...f, data: e.target.value }))}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label>Observações (opcional)</Label>
               <Textarea
-                placeholder="Informações adicionais sobre o atendimento..."
-                value={novoForm.observacoes}
-                onChange={(e) => setNovoForm((f) => ({ ...f, observacoes: e.target.value }))}
+                placeholder="Informações adicionais..."
+                value={cadastroForm.observacoes}
+                onChange={(e) => setCadastroForm((f) => ({ ...f, observacoes: e.target.value }))}
                 rows={2}
                 className="resize-none"
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setStep("list")}>Cancelar</Button>
-              <Button
-                onClick={() => createAtendimentoMutation.mutate({ data: novoForm })}
-                disabled={!novoForm.nomePaciente || !novoForm.numeroAtendimento || createAtendimentoMutation.isPending}
-                className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
-                data-testid="button-iniciar-atendimento"
-              >
-                {createAtendimentoMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Iniciar Atendimento
-              </Button>
+            <div className="flex justify-between items-center pt-2">
+              {isEditing ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAtendimento}
+                  disabled={deleteAtendimentoMutation.isPending}
+                  className="gap-1.5"
+                >
+                  {deleteAtendimentoMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Excluir Atendimento
+                </Button>
+              ) : <div />}
+
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setStep(isEditing ? "itens" : "list")}>Cancelar</Button>
+                <Button
+                  onClick={() => {
+                    if (isEditing) {
+                      updateAtendimentoMutation.mutate({ id: currentAtendimentoId ?? 0, data: cadastroForm });
+                    } else {
+                      createAtendimentoMutation.mutate({ data: cadastroForm });
+                    }
+                  }}
+                  disabled={!cadastroForm.nomePaciente || !cadastroForm.numeroAtendimento || createAtendimentoMutation.isPending || updateAtendimentoMutation.isPending}
+                  className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
+                >
+                  {(createAtendimentoMutation.isPending || updateAtendimentoMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isEditing ? "Salvar Alterações" : "Iniciar Atendimento"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -396,7 +475,19 @@ export default function DomPage() {
                 <p className="font-semibold text-gray-800">{atend.nomePaciente}</p>
                 <p className="text-xs text-gray-400">Atend. {atend.numeroAtendimento} · {format(new Date(atend.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}</p>
               </div>
-              <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">Em andamento</Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setStep("editar_cadastro")}
+                  className="gap-1.5 text-gray-600 border-gray-200"
+                >
+                  <Settings2 className="w-3.5 h-3.5" /> Editar Cadastro / Excluir
+                </Button>
+                <Badge className={atend.status === "finalizado" ? "bg-green-50 text-green-700 border-green-200 text-xs" : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"}>
+                  {atend.status === "finalizado" ? "Finalizado (Modo Edição)" : "Em andamento"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -415,13 +506,12 @@ export default function DomPage() {
                   <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     ref={scanRef}
-                    placeholder="Bipe o código de barras ou pressione Enter para buscar..."
+                    placeholder="Bipe o código de barras..."
                     value={scanInput}
                     onChange={(e) => setScanInput(e.target.value)}
                     onKeyDown={handleScanKeyDown}
                     className="pl-9 font-mono text-sm"
                     autoFocus
-                    data-testid="input-scan-item"
                   />
                 </div>
                 <p className="text-xs text-gray-400 text-center">ou</p>
@@ -437,7 +527,7 @@ export default function DomPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Código de Barras <span className="text-red-400">*</span></Label>
+                    <Label className="text-xs">Código de Barras *</Label>
                     <Input
                       value={itemDraft.codigoBarras}
                       onChange={(e) => setItemDraft((d) => ({ ...d, codigoBarras: e.target.value }))}
@@ -446,7 +536,7 @@ export default function DomPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Código Interno <span className="text-red-400">*</span></Label>
+                    <Label className="text-xs">Código Interno *</Label>
                     <Input
                       value={itemDraft.codigoInterno}
                       onChange={(e) => setItemDraft((d) => ({ ...d, codigoInterno: e.target.value }))}
@@ -455,7 +545,7 @@ export default function DomPage() {
                     />
                   </div>
                   <div className="col-span-2 space-y-1.5">
-                    <Label className="text-xs">Nome do Medicamento <span className="text-red-400">*</span></Label>
+                    <Label className="text-xs">Nome do Medicamento *</Label>
                     <Input
                       value={itemDraft.nome}
                       onChange={(e) => setItemDraft((d) => ({ ...d, nome: e.target.value }))}
@@ -463,7 +553,7 @@ export default function DomPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Lote <span className="text-red-400">*</span></Label>
+                    <Label className="text-xs">Lote *</Label>
                     <Input
                       value={itemDraft.lote}
                       onChange={(e) => setItemDraft((d) => ({ ...d, lote: e.target.value }))}
@@ -472,12 +562,12 @@ export default function DomPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Quantidade <span className="text-red-400">*</span></Label>
+                    <Label className="text-xs">Quantidade *</Label>
                     <Input
                       type="number"
                       min={1}
                       value={itemDraft.quantidade}
-                      onChange={(e) => setItemDraft((d) => ({ ...d, quantidade: Number(e.target.value) }))}
+                      onChange={(e) => setItemDraft((d) => ({ ...d, Policy: undefined, quantidade: Number(e.target.value) }))}
                     />
                   </div>
                 </div>
@@ -490,10 +580,9 @@ export default function DomPage() {
                     onClick={handleAddItem}
                     disabled={addItemMutation.isPending}
                     className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
-                    data-testid="button-add-item"
                   >
                     {addItemMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Adicionar Item
+                    Salvar Item
                   </Button>
                 </div>
               </div>
@@ -516,15 +605,24 @@ export default function DomPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 truncate">{item.nome}</p>
                       <p className="text-xs text-gray-400 font-mono mt-0.5">
-                        {item.codigoInterno} · Lote: {item.lote} · Qtd: <span className="font-bold text-gray-600">{item.quantidade}</span>
+                        {item.codigoBarras ? `EAN: ${item.codigoBarras} · ` : ""}CÓD: {item.codigoInterno} · Lote: {item.lote} · Qtd: <span className="font-bold text-gray-600">{item.quantidade}</span>
                       </p>
                     </div>
-                    <button
-                      onClick={() => deleteItemMutation.mutate({ atendimentoId: currentAtendimentoId ?? 0, itemId: item.id })}
-                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleEditItemInline(item)}
+                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                        title="Editar item diretamente"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteItemMutation.mutate({ atendimentoId: currentAtendimentoId ?? 0, itemId: item.id })}
+                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -533,14 +631,18 @@ export default function DomPage() {
         )}
 
         <div className="flex justify-end gap-2 pt-2">
+          {atend?.status === "finalizado" && (
+            <Button variant="outline" onClick={() => setStep("revisao")}>
+              Voltar para Revisão
+            </Button>
+          )}
           <Button
             onClick={() => setStep("revisao")}
             disabled={currentItens.length === 0}
             className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
-            data-testid="button-ir-revisao"
           >
             <ClipboardCheck className="w-4 h-4" />
-            Conferir e Finalizar ({currentItens.length} {currentItens.length === 1 ? "item" : "itens"})
+            Conferir e Avançar ({currentItens.length} {currentItens.length === 1 ? "item" : "itens"})
           </Button>
         </div>
       </div>
@@ -562,7 +664,7 @@ export default function DomPage() {
           onClick={() => setStep(isFinalizado ? "list" : "itens")}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-5"
         >
-          <ChevronLeft className="w-4 h-4" /> {isFinalizado ? "Voltar à lista" : "Voltar aos itens"}
+          <ChevronLeft className="w-4 h-4" /> Voltar à lista
         </button>
 
         {atend && (
@@ -573,14 +675,19 @@ export default function DomPage() {
                 <p className="text-xs text-gray-400">Atend. {atend.numeroAtendimento} · {format(new Date(atend.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}</p>
                 {atend.observacoes && <p className="text-xs text-gray-500 mt-1 italic">{atend.observacoes}</p>}
               </div>
-              <Badge
-                className={isFinalizado
-                  ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                  : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                }
-              >
-                {isFinalizado ? "Finalizado" : "Em andamento"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" onClick={() => setStep("itens")}>
+                  <Edit2 className="w-3.5 h-3.5" /> Editar Itens
+                </Button>
+                <Badge
+                  className={isFinalizado
+                    ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                    : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                  }
+                >
+                  {isFinalizado ? "Finalizado" : "Em andamento"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -626,7 +733,7 @@ export default function DomPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-800">{item.nome}</p>
                     <p className="text-xs text-gray-400 font-mono mt-0.5">
-                      CÓD: {item.codigoInterno} · Lote: {item.lote}
+                      {item.codigoBarras ? `EAN: ${item.codigoBarras} · ` : ""}CÓD: {item.codigoInterno} · Lote: {item.lote}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -642,7 +749,7 @@ export default function DomPage() {
         <div className="flex justify-between items-center gap-3 pt-2">
           <Button
             variant="outline"
-            onClick={handlePrint}
+            onClick={() => window.print()}
             className="gap-2 text-gray-600"
           >
             <Printer className="w-4 h-4" />
@@ -654,7 +761,6 @@ export default function DomPage() {
               onClick={handleFinalizar}
               disabled={!allChecked || finalizeMutation.isPending}
               className="bg-[#00995D] hover:bg-[#007A48] text-white gap-2"
-              data-testid="button-finalizar"
             >
               {finalizeMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <CheckCircle2 className="w-4 h-4" />

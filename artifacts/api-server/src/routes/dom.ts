@@ -62,6 +62,57 @@ router.get("/dom/atendimentos/:id", async (req, res) => {
   }
 });
 
+router.put("/dom/atendimentos/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = insertDomAtendimentoSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      return;
+    }
+    const [row] = await db
+      .update(domAtendimentosTable)
+      .set(parsed.data)
+      .where(eq(domAtendimentosTable.id, id))
+      .returning();
+    if (!row) {
+      res.status(404).json({ error: "Atendimento not found" });
+      return;
+    }
+    res.json(serializeAtendimento(row));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update DOM atendimento");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/dom/atendimentos/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    await db.delete(domItensTable).where(eq(domItensTable.atendimentoId, id));
+    const [deleted] = await db
+      .delete(domAtendimentosTable)
+      .where(eq(domAtendimentosTable.id, id))
+      .returning();
+    if (!deleted) {
+      res.status(404).json({ error: "Atendimento not found" });
+      return;
+    }
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete DOM atendimento");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.patch("/dom/atendimentos/:id/finalizar", async (req, res) => {
   try {
     const id = Number(req.params.id);

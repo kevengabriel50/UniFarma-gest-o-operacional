@@ -1106,6 +1106,148 @@ export function useGetDomAtendimento<TData = Awaited<ReturnType<typeof getDomAte
 
 
 
+export const getUpdateDomAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}`
+}
+
+/**
+ * @summary Update a DOM atendimento
+ */
+export const updateDomAtendimento = async (id: number,
+    domAtendimentoInput: DomAtendimentoInput, options?: RequestInit): Promise<DomAtendimento> => {
+
+  return customFetch<DomAtendimento>(getUpdateDomAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      domAtendimentoInput,)
+  }
+);}
+
+
+
+
+export const getUpdateDomAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDomAtendimento>>, TError,{id: number;data: BodyType<DomAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDomAtendimento>>, TError,{id: number;data: BodyType<DomAtendimentoInput>}, TContext> => {
+
+const mutationKey = ['updateDomAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDomAtendimento>>, {id: number;data: BodyType<DomAtendimentoInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateDomAtendimento(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDomAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof updateDomAtendimento>>>
+    export type UpdateDomAtendimentoMutationBody = BodyType<DomAtendimentoInput>
+    export type UpdateDomAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a DOM atendimento
+ */
+export const useUpdateDomAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDomAtendimento>>, TError,{id: number;data: BodyType<DomAtendimentoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDomAtendimento>>,
+        TError,
+        {id: number;data: BodyType<DomAtendimentoInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateDomAtendimentoMutationOptions(options));
+    }
+
+export const getDeleteDomAtendimentoUrl = (id: number,) => {
+
+
+
+
+  return `/api/dom/atendimentos/${id}`
+}
+
+/**
+ * @summary Delete a DOM atendimento
+ */
+export const deleteDomAtendimento = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteDomAtendimentoUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteDomAtendimentoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDomAtendimento>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteDomAtendimento'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDomAtendimento>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteDomAtendimento(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDomAtendimentoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDomAtendimento>>>
+
+    export type DeleteDomAtendimentoMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a DOM atendimento
+ */
+export const useDeleteDomAtendimento = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDomAtendimento>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDomAtendimento>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteDomAtendimentoMutationOptions(options));
+    }
+
 export const getFinalizeDomAtendimentoUrl = (id: number,) => {
 
 

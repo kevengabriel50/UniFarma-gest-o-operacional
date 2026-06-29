@@ -298,6 +298,45 @@ export const GetDomAtendimentoResponse = zod.object({
 
 
 /**
+ * @summary Update a DOM atendimento
+ */
+export const UpdateDomAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+export const UpdateDomAtendimentoBody = zod.object({
+  "nomePaciente": zod.string().min(1),
+  "numeroAtendimento": zod.string().min(1),
+  "data": zod.string().min(1),
+  "observacoes": zod.string().optional(),
+  "status": zod.enum(['em_andamento', 'finalizado']).optional()
+})
+
+export const UpdateDomAtendimentoResponse = zod.object({
+  "id": zod.number(),
+  "nomePaciente": zod.string(),
+  "numeroAtendimento": zod.string(),
+  "data": zod.string(),
+  "observacoes": zod.string().nullish(),
+  "status": zod.enum(['em_andamento', 'finalizado']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a DOM atendimento
+ */
+export const DeleteDomAtendimentoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary Finalize a DOM atendimento
  */
 export const FinalizeDomAtendimentoParams = zod.object({

@@ -293,6 +293,48 @@ paths:
                 $ref: "#/components/schemas/DomAtendimentoDetail"
         "404":
           description: Not found
+    put:
+      operationId: updateDomAtendimento
+      tags: [dom]
+      summary: Update a DOM atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomAtendimentoInput"
+      responses:
+        "200":
+          description: Updated atendimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomAtendimento"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteDomAtendimento
+      tags: [dom]
+      summary: Delete a DOM atendimento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
   /dom/atendimentos/{id}/finalizar:
     patch:
       operationId: finalizeDomAtendimento
