@@ -1,0 +1,103 @@
+Preciso estruturar o UniFarma para possuir dois ambientes distintos utilizando a mesma base de código, sem duplicar o projeto e seguindo boas práticas de desenvolvimento.
+
+Antes de realizar qualquer alteração, analise a arquitetura atual do projeto e proponha a solução que gere menor manutenção futura.
+
+## Objetivo
+
+Quero manter apenas um código-fonte, mas possuir dois deploys independentes:
+
+### 1. Ambiente Interno (Produção)
+
+Este ambiente será utilizado pela equipe da farmácia.
+
+Características:
+
+* Destinado ao uso operacional.
+* Possui acesso aos dados reais.
+* Utilizado pela equipe autorizada.
+* Deve permitir todas as funcionalidades do sistema.
+* Login obrigatório.
+* Preparado para futuras evoluções.
+* Não será divulgado publicamente.
+
+---
+
+### 2. Ambiente de Demonstração (Portfólio)
+
+Este ambiente será utilizado apenas para apresentação do projeto em entrevistas, currículo e LinkedIn.
+
+Características:
+
+* URL pública.
+* Não deve conter nenhum dado real.
+* Deve utilizar apenas dados fictícios.
+* Deve possuir um usuário de demonstração pré-configurado.
+* O sistema precisa funcionar normalmente para que recrutadores possam testar.
+* Nenhuma ação realizada nesse ambiente pode afetar o ambiente interno.
+
+Exemplo:
+
+Login:
+demo
+
+Senha:
+demo123
+
+---
+
+## Requisitos técnicos
+
+Quero reutilizar praticamente 100% do código existente.
+
+Evite criar dois projetos separados.
+
+Caso seja necessário, utilize variáveis de ambiente para diferenciar os ambientes.
+
+Exemplos:
+
+* banco de dados diferente;
+* usuários diferentes;
+* configurações diferentes;
+* URL da API diferente;
+* modo de demonstração.
+
+Caso exista alguma funcionalidade que só faça sentido no ambiente interno, ela deve poder ser habilitada ou desabilitada através de configuração, sem necessidade de alterar código.
+
+---
+
+## Organização
+
+Quero uma arquitetura que permita:
+
+* um único repositório GitHub;
+* um único código-fonte;
+* dois deploys independentes;
+* fácil manutenção futura.
+
+---
+
+## Segurança
+
+No ambiente de demonstração:
+
+* garantir que nenhum dado real seja exposto;
+* utilizar apenas dados fictícios;
+* impedir acesso acidental ao banco de produção;
+* impedir vazamento de credenciais.
+
+---
+
+## Entrega
+
+Antes de alterar qualquer arquivo:
+
+1. Analise a estrutura atual do projeto.
+2. Explique qual será a estratégia adotada.
+3. Liste quais arquivos precisarão ser modificados.
+4. Justifique cada alteração.
+
+Após concluir:
+
+* explique como realizar os dois deploys;
+* explique como configurar as variáveis de ambiente de cada ambiente;
+* explique como manter ambos sincronizados utilizando o mesmo repositório GitHub.
