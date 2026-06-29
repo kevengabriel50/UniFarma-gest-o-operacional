@@ -7,6 +7,8 @@ servers:
   - url: /api
     description: Base API path
 tags:
+  - name: auth
+    description: Authentication operations
   - name: health
     description: Health operations
   - name: events
@@ -18,6 +20,72 @@ tags:
   - name: contingencia
     description: Contingência operations
 paths:
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags: [auth]
+      summary: Login with credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+
+  /auth/cadastro:
+    post:
+      operationId: authCadastro
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CadastroInput"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "409":
+          description: Username already exists
+
+  /auth/me:
+    get:
+      operationId: authMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+
   /healthz:
     get:
       operationId: healthCheck
@@ -770,6 +838,42 @@ components:
         ativo:
           type: boolean
 
+    AuthUser:
+      type: object
+      required: [id, nome, usuario]
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        usuario:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [usuario, senha]
+      properties:
+        usuario:
+          type: string
+          minLength: 1
+        senha:
+          type: string
+          minLength: 1
+
+    CadastroInput:
+      type: object
+      required: [nome, usuario, senha]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+        usuario:
+          type: string
+          minLength: 3
+        senha:
+          type: string
+          minLength: 6
+
     DomAtendimento:
       type: object
       required: [id, nomePaciente, numeroAtendimento, data, status, createdAt]
@@ -787,6 +891,8 @@ components:
         status:
           type: string
           enum: [em_andamento, finalizado]
+        usuarioNome:
+          type: ["string", "null"]
         createdAt:
           type: string
     DomAtendimentoInput:
@@ -874,6 +980,8 @@ components:
         status:
           type: string
           enum: [em_andamento, finalizado]
+        usuarioNome:
+          type: ["string", "null"]
         createdAt:
           type: string
     ContingenciaAtendimentoInput:

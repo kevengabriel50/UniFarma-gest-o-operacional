@@ -11,7 +11,9 @@ import {
   X,
   Home,
   AlertTriangle,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -31,9 +33,14 @@ const navItems = [
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const currentItem = navItems.find((item) => item.path === location);
   const pageTitle = currentItem ? currentItem.label : "Gestão Operacional";
+
+  const userInitials = user?.nome
+    ? user.nome.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "US";
 
   return (
     <div className="flex min-h-[100dvh] w-full bg-[#f7faf8]">
@@ -89,14 +96,23 @@ export function AppLayout({ children }: AppLayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
-              US
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0">
+                {userInitials}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium truncate">{user?.nome ?? "Usuário"}</span>
+                <span className="text-xs text-white/60 truncate">{user?.usuario ?? ""}</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Usuário do Sistema</span>
-              <span className="text-xs text-white/60">Farmacêutico</span>
-            </div>
+            <button
+              onClick={logout}
+              title="Sair"
+              className="text-white/60 hover:text-white transition-colors shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -114,9 +130,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{pageTitle}</h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {user && (
+              <span className="text-sm text-gray-500 hidden sm:block">{user.nome}</span>
+            )}
             <div className="w-9 h-9 rounded-full bg-[#00995D] flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-[#e6f7f0]">
-              US
+              {userInitials}
             </div>
           </div>
         </header>

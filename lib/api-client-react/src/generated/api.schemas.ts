@@ -136,6 +136,28 @@ export interface MedicationUpdate {
   ativo?: boolean;
 }
 
+export interface AuthUser {
+  id: number;
+  nome: string;
+  usuario: string;
+}
+
+export interface LoginInput {
+  /** @minLength 1 */
+  usuario: string;
+  /** @minLength 1 */
+  senha: string;
+}
+
+export interface CadastroInput {
+  /** @minLength 2 */
+  nome: string;
+  /** @minLength 3 */
+  usuario: string;
+  /** @minLength 6 */
+  senha: string;
+}
+
 export type DomAtendimentoStatus = typeof DomAtendimentoStatus[keyof typeof DomAtendimentoStatus];
 
 
@@ -152,6 +174,8 @@ export interface DomAtendimento {
   /** @nullable */
   observacoes?: string | null;
   status: DomAtendimentoStatus;
+  /** @nullable */
+  usuarioNome?: string | null;
   createdAt: string;
 }
 
@@ -218,6 +242,8 @@ export interface ContingenciaAtendimento {
   /** @nullable */
   observacoes?: string | null;
   status: ContingenciaAtendimentoStatus;
+  /** @nullable */
+  usuarioNome?: string | null;
   createdAt: string;
 }
 

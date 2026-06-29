@@ -9,6 +9,53 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Login with credentials
+ */
+
+
+
+
+export const AuthLoginBody = zod.object({
+  "usuario": zod.string().min(1),
+  "senha": zod.string().min(1)
+})
+
+export const AuthLoginResponse = zod.object({
+  "id": zod.number(),
+  "nome": zod.string(),
+  "usuario": zod.string()
+})
+
+
+/**
+ * @summary Register a new user
+ */
+export const authCadastroBodyNomeMin = 2;
+
+export const authCadastroBodyUsuarioMin = 3;
+
+export const authCadastroBodySenhaMin = 6;
+
+
+
+export const AuthCadastroBody = zod.object({
+  "nome": zod.string().min(authCadastroBodyNomeMin),
+  "usuario": zod.string().min(authCadastroBodyUsuarioMin),
+  "senha": zod.string().min(authCadastroBodySenhaMin)
+})
+
+
+/**
+ * @summary Get current authenticated user
+ */
+export const AuthMeResponse = zod.object({
+  "id": zod.number(),
+  "nome": zod.string(),
+  "usuario": zod.string()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -246,6 +293,7 @@ export const ListDomAtendimentosResponseItem = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListDomAtendimentosResponse = zod.array(ListDomAtendimentosResponseItem)
@@ -282,6 +330,7 @@ export const GetDomAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 }).and(zod.object({
   "itens": zod.array(zod.object({
@@ -324,6 +373,7 @@ export const UpdateDomAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -350,6 +400,7 @@ export const FinalizeDomAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -368,6 +419,7 @@ export const ReopenDomAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -414,6 +466,7 @@ export const ListContingenciaAtendimentosResponseItem = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListContingenciaAtendimentosResponse = zod.array(ListContingenciaAtendimentosResponseItem)
@@ -450,6 +503,7 @@ export const GetContingenciaAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 }).and(zod.object({
   "itens": zod.array(zod.object({
@@ -492,6 +546,7 @@ export const UpdateContingenciaAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -518,6 +573,7 @@ export const FinalizeContingenciaAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -536,6 +592,7 @@ export const ReopenContingenciaAtendimentoResponse = zod.object({
   "data": zod.string(),
   "observacoes": zod.string().nullish(),
   "status": zod.enum(['em_andamento', 'finalizado']),
+  "usuarioNome": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

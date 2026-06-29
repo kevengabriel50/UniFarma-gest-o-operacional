@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './authUser';
+export * from './cadastroInput';
 export * from './calendarEvent';
 export * from './calendarEventCategory';
 export * from './calendarEventInput';
@@ -31,6 +33,7 @@ export * from './eventsSummaryByCategory';
 export * from './healthStatus';
 export * from './listEventsParams';
 export * from './listMedicationsParams';
+export * from './loginInput';
 export * from './medication';
 export * from './medicationInput';
 export * from './medicationUpdate';

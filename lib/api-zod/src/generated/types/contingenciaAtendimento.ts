@@ -15,5 +15,7 @@ export interface ContingenciaAtendimento {
   /** @nullable */
   observacoes?: string | null;
   status: ContingenciaAtendimentoStatus;
+  /** @nullable */
+  usuarioNome?: string | null;
   createdAt: string;
 }

@@ -11,6 +11,7 @@ export const domAtendimentosTable = pgTable("dom_atendimentos", {
   data: text("data").notNull(),
   observacoes: text("observacoes"),
   status: domStatusEnum("status").notNull().default("em_andamento"),
+  usuarioNome: text("usuario_nome"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

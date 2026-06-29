@@ -33,7 +33,8 @@ router.post("/contingencia/atendimentos", async (req, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const [row] = await db.insert(contingenciaAtendimentosTable).values(parsed.data).returning();
+    const usuarioNome = req.session?.user?.nome ?? null;
+    const [row] = await db.insert(contingenciaAtendimentosTable).values({ ...parsed.data, usuarioNome }).returning();
     res.status(201).json(serializeAtendimento(row));
   } catch (err) {
     req.log.error({ err }, "Failed to create Contingência atendimento");

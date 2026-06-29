@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +14,7 @@ import DomPage from "@/pages/DomPage";
 import ContingenciaPage from "@/pages/ContingenciaPage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppProvider } from "@/lib/app-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 
 const queryClient = new QueryClient();
 
@@ -36,21 +36,31 @@ function Router() {
   );
 }
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function AppContent() {
+  const { user, isLoading } = useAuth();
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#e6f7f0] flex items-center justify-center">
+        <div className="text-[#00995D] font-medium text-lg">Carregando...</div>
+      </div>
+    );
+  }
+
+  return user ? <Router /> : <LoginPage />;
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AppProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            {!isAuthenticated ? (
-              <LoginPage onLogin={() => setIsAuthenticated(true)} />
-            ) : (
-              <Router />
-            )}
-          </WouterRouter>
-          <Toaster />
+          <AuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <AppContent />
+            </WouterRouter>
+            <Toaster />
+          </AuthProvider>
         </AppProvider>
       </TooltipProvider>
     </QueryClientProvider>

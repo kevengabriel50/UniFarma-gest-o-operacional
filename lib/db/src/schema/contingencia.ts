@@ -11,6 +11,7 @@ export const contingenciaAtendimentosTable = pgTable("contingencia_atendimentos"
   data: text("data").notNull(),
   observacoes: text("observacoes"),
   status: contingenciaStatusEnum("status").notNull().default("em_andamento"),
+  usuarioNome: text("usuario_nome"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

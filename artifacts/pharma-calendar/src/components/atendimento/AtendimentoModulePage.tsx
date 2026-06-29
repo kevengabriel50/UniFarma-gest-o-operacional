@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth-context";
 import {
   Home,
   Plus,
@@ -26,6 +27,7 @@ import {
   Edit2,
   Settings2,
   RotateCcw,
+  User,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,6 +41,7 @@ export interface ModuleAtendimento {
   data: string;
   observacoes?: string | null;
   status: "em_andamento" | "finalizado";
+  usuarioNome?: string | null;
   createdAt: string;
 }
 
@@ -121,64 +124,89 @@ function PrintView({
   itens: ModuleItem[];
 }) {
   return (
-    <div id="print-area" className="hidden print:block p-8 font-sans text-sm text-black">
-      <div className="border-b-2 border-black pb-4 mb-4">
-        <h1 className="text-2xl font-bold">UniFarma — Atendimento {moduleLabel}</h1>
-        <p className="text-gray-500 text-xs mt-1">
+    <div id="print-area" className="hidden print:block font-sans text-sm text-black">
+      <style>{`
+        @media print {
+          @page { margin: 1.5cm; size: A4 portrait; }
+          #print-area { display: block !important; }
+          body * { visibility: hidden; }
+          #print-area, #print-area * { visibility: visible; }
+          #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .print-header { page-break-after: avoid; break-after: avoid; }
+          .print-meta { page-break-after: avoid; break-after: avoid; }
+          .print-table { width: 100%; border-collapse: collapse; }
+          .print-table thead { display: table-header-group; }
+          .print-table tbody tr { page-break-inside: avoid; break-inside: avoid; }
+          .print-footer { page-break-before: avoid; break-before: avoid; }
+        }
+      `}</style>
+
+      {/* Cabeçalho */}
+      <div className="print-header" style={{ borderBottom: "2px solid black", paddingBottom: "12px", marginBottom: "12px" }}>
+        <h1 style={{ fontSize: "18px", fontWeight: "bold", margin: 0 }}>
+          UniFarma — Atendimento {moduleLabel}
+        </h1>
+        <p style={{ fontSize: "11px", color: "#666", margin: "4px 0 0" }}>
           Unimed Londrina — Farmácia Hospitalar — Pronto Atendimento
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-4 mb-6">
+
+      {/* Metadados do paciente */}
+      <div className="print-meta" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 24px", marginBottom: "16px", fontSize: "12px" }}>
+        <div><strong>Paciente:</strong> {atendimento.nomePaciente}</div>
+        <div><strong>Nº Atendimento:</strong> {atendimento.numeroAtendimento}</div>
         <div>
-          <span className="font-semibold">Paciente:</span> {atendimento.nomePaciente}
-        </div>
-        <div>
-          <span className="font-semibold">Nº Atendimento:</span> {atendimento.numeroAtendimento}
-        </div>
-        <div>
-          <span className="font-semibold">Data:</span>{" "}
+          <strong>Data:</strong>{" "}
           {format(new Date(atendimento.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}
         </div>
         <div>
-          <span className="font-semibold">Status:</span>{" "}
+          <strong>Status:</strong>{" "}
           {atendimento.status === "finalizado" ? "Finalizado" : "Em andamento"}
         </div>
+        {atendimento.usuarioNome && (
+          <div><strong>Realizado por:</strong> {atendimento.usuarioNome}</div>
+        )}
         {atendimento.observacoes && (
-          <div className="col-span-2">
-            <span className="font-semibold">Observações:</span> {atendimento.observacoes}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <strong>Observações:</strong> {atendimento.observacoes}
           </div>
         )}
       </div>
-      <table className="w-full border-collapse border border-gray-300 text-xs">
+
+      {/* Tabela de itens */}
+      <table className="print-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
         <thead>
-          <tr className="bg-gray-100">
-            <th className="border border-gray-300 px-2 py-1 text-left">EAN</th>
-            <th className="border border-gray-300 px-2 py-1 text-left">Cód. Interno</th>
-            <th className="border border-gray-300 px-2 py-1 text-left">Nome</th>
-            <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Qtd</th>
+          <tr style={{ backgroundColor: "#f0f0f0" }}>
+            <th style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "left" }}>EAN</th>
+            <th style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "left" }}>Cód. Interno</th>
+            <th style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "left" }}>Nome</th>
+            <th style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "left" }}>Lote</th>
+            <th style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "center", width: "40px" }}>Qtd</th>
           </tr>
         </thead>
         <tbody>
           {itens.map((item) => (
-            <tr key={item.id}>
-              <td className="border border-gray-300 px-2 py-1 font-mono">
+            <tr key={item.id} style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <td style={{ border: "1px solid #aaa", padding: "4px 6px", fontFamily: "monospace" }}>
                 {item.codigoBarras || "—"}
               </td>
-              <td className="border border-gray-300 px-2 py-1 font-mono">{item.codigoInterno}</td>
-              <td className="border border-gray-300 px-2 py-1">{item.nome}</td>
-              <td className="border border-gray-300 px-2 py-1 font-mono">{item.lote}</td>
-              <td className="border border-gray-300 px-2 py-1 text-center font-bold">
+              <td style={{ border: "1px solid #aaa", padding: "4px 6px", fontFamily: "monospace" }}>{item.codigoInterno}</td>
+              <td style={{ border: "1px solid #aaa", padding: "4px 6px" }}>{item.nome}</td>
+              <td style={{ border: "1px solid #aaa", padding: "4px 6px", fontFamily: "monospace" }}>{item.lote}</td>
+              <td style={{ border: "1px solid #aaa", padding: "4px 6px", textAlign: "center", fontWeight: "bold" }}>
                 {item.quantidade}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="mt-8 pt-4 border-t border-gray-300">
-        <p className="text-xs text-gray-400">
+
+      {/* Rodapé */}
+      <div className="print-footer" style={{ marginTop: "20px", paddingTop: "10px", borderTop: "1px solid #ccc" }}>
+        <p style={{ fontSize: "10px", color: "#888", margin: 0 }}>
           Documento gerado em{" "}
           {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          {atendimento.usuarioNome ? ` — por ${atendimento.usuarioNome}` : ""}
         </p>
       </div>
     </div>
@@ -188,6 +216,7 @@ function PrintView({
 export default function AtendimentoModulePage({ moduleLabel, hooks }: AtendimentoModulePageProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [step, setStep] = useState<Step>("list");
   const [currentAtendimentoId, setCurrentAtendimentoId] = useState<number | null>(null);
@@ -475,6 +504,11 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
                         Atend. {a.numeroAtendimento} ·{" "}
                         {format(new Date(a.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
+                      {a.usuarioNome && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                          <User className="w-3 h-3" /> {a.usuarioNome}
+                        </p>
+                      )}
                     </div>
                     <Badge
                       variant="outline"
@@ -593,7 +627,9 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
                         data: cadastroForm,
                       });
                     } else {
-                      createAtendimentoMutation.mutate({ data: cadastroForm });
+                      createAtendimentoMutation.mutate({
+                        data: { ...cadastroForm, usuarioNome: user?.nome ?? null },
+                      });
                     }
                   }}
                   disabled={
@@ -878,6 +914,11 @@ export default function AtendimentoModulePage({ moduleLabel, hooks }: Atendiment
                   Atend. {atend.numeroAtendimento} ·{" "}
                   {format(new Date(atend.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                 </p>
+                {atend.usuarioNome && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                    <User className="w-3 h-3" /> {atend.usuarioNome}
+                  </p>
+                )}
                 {atend.observacoes && (
                   <p className="text-xs text-gray-500 mt-1 italic">{atend.observacoes}</p>
                 )}

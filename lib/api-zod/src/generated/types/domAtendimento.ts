@@ -15,5 +15,7 @@ export interface DomAtendimento {
   /** @nullable */
   observacoes?: string | null;
   status: DomAtendimentoStatus;
+  /** @nullable */
+  usuarioNome?: string | null;
   createdAt: string;
 }

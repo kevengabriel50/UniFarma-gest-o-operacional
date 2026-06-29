@@ -27,7 +27,8 @@ router.post("/dom/atendimentos", async (req, res) => {
       res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       return;
     }
-    const [row] = await db.insert(domAtendimentosTable).values(parsed.data).returning();
+    const usuarioNome = req.session?.user?.nome ?? null;
+    const [row] = await db.insert(domAtendimentosTable).values({ ...parsed.data, usuarioNome }).returning();
     res.status(201).json(serializeAtendimento(row));
   } catch (err) {
     req.log.error({ err }, "Failed to create DOM atendimento");

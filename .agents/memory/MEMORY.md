@@ -1,2 +1,3 @@
 - [Shared AtendimentoModulePage](atendimento-module.md) — DOM e Contingência reutilizam o mesmo componente genérico; wrappers passam hooks como `any`.
 - [Query key readonly](query-key-types.md) — Orval gera query keys como `readonly` tuples; usar `readonly unknown[]` na interface, não `unknown[]`.
+- [Auth stack](auth-stack.md) — Auth via express-session + bcryptjs; admin semeado no boot; zod não está instalado no api-server (usar validação manual).
