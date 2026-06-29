@@ -1,67 +1,48 @@
-# UniFarma — Gestão Operacional de Farmácia Hospitalar
+# 🏥 UniFarma – Sistema de Apoio Operacional para Farmácia Hospitalar
 
-Sistema de gestão operacional desenvolvido para digitalizar e centralizar processos internos da farmácia hospitalar, substituindo fluxos manuais e comunicações exclusivamente orais por uma plataforma única e organizada.
+O **UniFarma** é uma aplicação web desenvolvida para digitalizar e centralizar processos operacionais da farmácia hospitalar, reduzindo retrabalho, melhorando a comunicação entre equipes e apoiando situações críticas da rotina.
 
-O projeto surgiu a partir da observação de problemas reais no fluxo operacional da farmácia hospitalar da Unimed Londrina, cooperativa integrante de um dos maiores sistemas de saúde cooperativista do mundo.
+O projeto surgiu a partir da observação de problemas reais no fluxo operacional da **Unimed Londrina**, onde diversas atividades ainda dependiam de comunicação verbal, registros em papel e processos descentralizados. A partir dessas necessidades foi idealizada uma solução para organizar informações, padronizar processos e tornar a operação mais eficiente.
 
-A proposta do UniFarma é melhorar a comunicação entre plantões, reduzir perda de informações importantes e centralizar tarefas operacionais que atualmente dependem de anotações manuais, comunicação verbal ou registros descentralizados.
+> ⚠️ **A versão pública utiliza apenas dados fictícios para demonstração. Nenhuma informação real da instituição ou de pacientes é disponibilizada.**
 
-A execução do sistema foi acelerada com auxílio de ferramentas de Inteligência Artificial, utilizadas como suporte para prototipagem, estruturação e desenvolvimento da aplicação.
+## 🚀 Funcionalidades
 
----
+* Sistema de autenticação e controle de usuários
+* Dashboard operacional
+* Calendário de férias, folgas e treinamentos
+* Passagem de plantão digital
+* Registro de tarefas operacionais
+* Controle de medicamentos em falta
+* Registro e gerenciamento de atendimentos
+* Pesquisa por códigos internos e códigos de barras
+* Impressão de etiquetas e atendimentos
+* Histórico de registros e usuários responsáveis por cada atendimento
 
-## Problemas Identificados
+## 🛠 Tecnologias
 
-- Passagens de plantão realizadas verbalmente
-- Informações importantes esquecidas entre turnos
-- Controle manual de férias, folgas e treinamentos
-- Falta de rastreabilidade de intercorrências
-- Comunicação inconsistente sobre medicamentos em falta
-- Registros importantes feitos em papel ou cadernos
+**Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui, FullCalendar
 
----
+**Backend:** Express.js, TypeScript
 
-## Funcionalidades
+**Banco de Dados:** PostgreSQL, Drizzle ORM
 
-- Dashboard operacional com timeline de alertas e mural de avisos
-- Calendário operacional com férias, folgas, treinamentos e trocas de plantão
-- Passagem de plantão digital estruturada
-- Registro de tasks operacionais
-- Controle de medicamentos em falta ou baixo estoque
-- Histórico de plantões e registros anteriores
-- Feriados nacionais automáticos
-- Interface inspirada em sistemas corporativos hospitalares
+**Outras Ferramentas:** Zod, OpenAPI, Orval, pnpm Workspaces
 
----
+## 🤖 Desenvolvimento com IA
 
-## Tecnologias Utilizadas
+O UniFarma foi desenvolvido com apoio de ferramentas de Inteligência Artificial para acelerar a implementação técnica. A identificação dos problemas, definição dos requisitos, validação das funcionalidades e direcionamento da evolução do sistema foram baseados em necessidades reais observadas durante a rotina da farmácia hospitalar.
 
-### Frontend
-- React
-- Vite
-- Tailwind CSS
-- shadcn/ui
-- FullCalendar
+## 📌 Status
 
-### Backend
-- Express.js
-- TypeScript
-
-### Banco de Dados
-- PostgreSQL
-- Drizzle ORM
-
-### Outras Ferramentas
-- Zod
-- OpenAPI
-- Orval
-- pnpm workspaces
+🚧 Projeto em desenvolvimento ativo, com novas funcionalidades sendo implementadas continuamente conforme necessidades operacionais e evolução técnica do desenvolvedor.
 
 ---
 
-## Estrutura do Projeto
+### 🌐 Demonstração
 
-```txt
-Frontend: artifacts/pharma-calendar/
-Backend: artifacts/api-server/
-Banco: lib/db/
+[**Deploy:**](https://uni-farma-gest-o-operacional-demo.replit.app/)
+
+**Usuário Demo:** `demo`
+
+**Senha:** `demo123`
